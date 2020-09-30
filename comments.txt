@@ -1,0 +1,1 @@
+POST data should be logged
