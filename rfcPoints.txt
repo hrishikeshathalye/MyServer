@@ -1,0 +1,9 @@
+Important points from the rfc specific to servers :
+
+1. A server SHOULD return 414 (Request-URI Too Long) status if a URI is longer than the server can handle.
+Note: Servers ought to be cautious about depending on URI lengths
+      above 255 bytes, because some older client or proxy
+      implementations might not properly support these lengths.
+      
+      
+   
