@@ -5,5 +5,20 @@ Note: Servers ought to be cautious about depending on URI lengths
       above 255 bytes, because some older client or proxy
       implementations might not properly support these lengths.
       
-      
+2. For example, the following three URIs are equivalent:
+
+      http://abc.com:80/~smith/home.html
+      http://ABC.com/%7Esmith/home.html
+      http://ABC.com:/%7esmith/home.html
+
+3.  HTTP/1.1 clients and servers that parse the date value MUST accept
+   all three formats (for compatibility with HTTP/1.0), though they MUST
+   only generate the RFC 1123 format for representing HTTP-date values
+   in header fields.
+
+4. A server which receives an entity-body with a transfer-coding it does
+   not understand SHOULD return 501 (Unimplemented), and close the
+   connection. A server MUST NOT send transfer-codings to an HTTP/1.0
+   client.
    
+ 
