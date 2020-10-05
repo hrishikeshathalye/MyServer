@@ -78,17 +78,33 @@ class utils():
 		"""
 		pass
 
-if __name__ == "__main__":
-	tcpSocket = tcpSocket('', 90)
-	utils = utils()
-	while True:
-		tcpSocket.accept()
-		request = tcpSocket.receive('utf-8')
-		utils.requestParser(request)
-		response = """
-HTTP/1.1 200 OK
+class Server:
+	def __init__(self, host, port):
+		self.tcpSocket = tcpSocket(host, port)
+		self.utils = utils()
 
-Hello, World!
-"""
-		tcpSocket.send(response, 'utf-8')
-		tcpSocket.close()
+	def worker(self):
+		"""
+		server spawns worker threads
+		"""
+		request = self.tcpSocket.receive('utf-8')
+		self.utils.requestParser(request)
+		response = "HTTP/1.1 200 OK\r\n\r\nHello, World!"
+		self.tcpSocket.send(response, 'utf-8')
+		self.tcpSocket.close()
+
+	def serve(self):
+		"""
+		server serves requests
+		"""
+		while True:
+			self.tcpSocket.accept()
+			handlerThread = threading.Thread(target=self.worker)
+			#declaring threads as daemons so that the threads do not block program exit and terminate on program exit
+			handlerThread.daemon = True
+			handlerThread.start()
+		
+if __name__ == "__main__":
+	#An instance of a multithreaded server
+	server = Server('', 90)
+	server.serve()
