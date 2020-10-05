@@ -32,12 +32,58 @@ class tcpSocket:
 	def close(self):
 		self.clientConnection.close()
 
+class utils():
+	#class to encapsulate helper utils
+	def requestParser(self, requestStr):
+		"""
+		accept request string, return dictionary
+		"""
+		requestStr = requestStr.strip()
+		#According to the RFC, the body starts after a \r\n\r\n sequence
+		headerBodySplit = requestStr.split("\r\n\r\n", 1)
+		reqlineAndHeaders = headerBodySplit[0]
+		body = ''
+		#since the body maybe absent sometimes, this avoids an IndexError
+		if(len(headerBodySplit)>1):
+			body = headerBodySplit[1]
+		
+		headerFields = reqlineAndHeaders.strip().split('\r\n')
+		requestLine = headerFields[0]
+		headers = headerFields[1:]
+
+		headersDict = dict()
+		for i in headers:
+			keyValSplit = i.split(':', 1)
+			key = keyValSplit[0]
+			val = keyValSplit[1]
+			#lower used since according to RFC, header keys are case insensitive
+			#Some values maybe case sensitive or otherwise, depending on key, THAT CASE NOT HANDLED
+			headersDict[key.strip().lower()] = val.strip()
+		
+		headers = headersDict
+		#At this point requestLine(string), headers(dictionary) and body(string) constitute the entire message
+		#uncomment line below if debugging to compare with original requestStr
+		#print(requestStr)
+		print("Request Line :")
+		print(requestLine)
+		print("Headers :")
+		print(headers)
+		print("Body :")
+		print(body)
+
+	def responseBuilder(self, responseDict):
+		"""
+		accept dictionary, build response string
+		"""
+		pass
+
 if __name__ == "__main__":
 	tcpSocket = tcpSocket('', 90)
+	utils = utils()
 	while True:
 		tcpSocket.accept()
 		request = tcpSocket.receive('utf-8')
-		print(request)
+		utils.requestParser(request)
 		response = """
 HTTP/1.1 200 OK
 
