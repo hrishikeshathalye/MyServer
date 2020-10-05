@@ -1,4 +1,5 @@
 import socket
+import threading
 
 #class to encapsulate most socket functions
 class tcpSocket:
@@ -71,7 +72,7 @@ class utils():
 		print("Body :")
 		print(body)
 
-	def responseBuilder(self, responseDict):
+	def responseBuilder(self, statusLine, headersDict, body):
 		"""
 		accept dictionary, build response string
 		"""
