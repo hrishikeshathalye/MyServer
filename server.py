@@ -1,5 +1,7 @@
 import socket
 import threading
+import sys
+import os
 
 #class to encapsulate most socket functions
 class tcpSocket:
@@ -7,13 +9,14 @@ class tcpSocket:
 		"""
 		creates tcp socket, binds to host and port, makes it listen
 		"""
+		self.host = host
+		self.port = port
 		self.socketVar = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		#SO_REUSEADDR allows reuse of sockets set in TIME_WAIT state
 		#it also does not block all ports hence to be used if using HOST as ''
 		self.socketVar.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		self.socketVar.bind((host, port))
 		self.socketVar.listen(5)
-		print(f'Serving HTTP on port {port} ...')
 
 	def accept(self):
 		self.clientConnection, self.clientAddress = self.socketVar.accept()
@@ -78,33 +81,91 @@ class utils():
 		"""
 		pass
 
-class Server:
+class Server:	
 	def __init__(self, host, port):
+		#A variable which contains all thread objects
+		self.threads = []
+		#variable to check if server is serving 1 - running, 0 - stopped
+		self.status = 0
 		self.tcpSocket = tcpSocket(host, port)
+		#timeout on accept function
+		self.tcpSocket.socketVar.settimeout(0)
 		self.utils = utils()
 
 	def worker(self):
 		"""
 		server spawns worker threads
 		"""
-		request = self.tcpSocket.receive('utf-8')
-		self.utils.requestParser(request)
-		response = "HTTP/1.1 200 OK\r\n\r\nHello, World!"
-		self.tcpSocket.send(response, 'utf-8')
-		self.tcpSocket.close()
-
+		self.tcpSocket.clientConnection.settimeout(5.0)
+		try:
+			request = self.tcpSocket.receive('utf-8')
+			self.utils.requestParser(request)
+			response = "HTTP/1.1 200 OK\r\n\r\nHello, World!"
+			self.tcpSocket.send(response, 'utf-8')
+		except:
+			pass
+		finally:
+			self.tcpSocket.close()
+		
 	def serve(self):
 		"""
 		server serves requests
 		"""
-		while True:
-			self.tcpSocket.accept()
-			handlerThread = threading.Thread(target=self.worker)
-			#declaring threads as daemons so that the threads do not block program exit and terminate on program exit
-			handlerThread.daemon = True
-			handlerThread.start()
+		print(f'Serving HTTP on port {self.tcpSocket.port}...')
+		self.status = 1
+		while self.status:
+			try:
+				self.tcpSocket.accept()
+			except:
+				continue
+			else:
+				workerThread = threading.Thread(target=self.worker)
+				self.threads.append(workerThread)
+				workerThread.start()
+	
+	def stop(self):
+		"""
+		joins all threads
+		stops server, then returns 1
+		"""
+		#dont accept any new requests
+		self.status = 0
+		print("Waiting for all pending requests to complete...")
+		#serve pending requests
+		for thread in self.threads:
+			thread.join()
+		print("All pending requests served.")
+		print("Server has stopped.")
+
+	# def restart(self):
+	# 	"""
+	# 	restarts the server
+	# 	"""
+	# 	self.stop()
+	# 	print("Restarting Server")
+	# 	self.serve()
 		
 if __name__ == "__main__":
 	#An instance of a multithreaded server
 	server = Server('', 90)
-	server.serve()
+	#The action of serving is a seperate thread since main needs to also accept input
+	#and the normal behavior of serve is blocking in nature
+	serverThread = threading.Thread(target=server.serve)
+	serverThread.start()
+	while True:
+		ip = input()
+		ip = ip.lower()
+		if(ip == 'stop'):
+			server.stop()
+			break
+		elif(ip == 'restart'):
+			server.stop()
+			#ensure previous server thread stopped
+			serverThread.join()	
+			print("Restarting Server")
+			#start new server thread
+			serverThread = threading.Thread(target=server.serve)
+			serverThread.start()
+		else:
+			print("Invalid Option")
+	serverThread.join()	
