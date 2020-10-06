@@ -111,7 +111,7 @@ class Server:
 		"""
 		server serves requests
 		"""
-		print(f'Serving HTTP on port {self.tcpSocket.port}...')
+		print(f'Serving HTTP on port {self.tcpSocket.port} (stop/restart)...')
 		self.status = 1
 		while self.status:
 			try:
