@@ -31,7 +31,7 @@ import utils
 
 def get(requestDict):
     responseDict = {
-        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':'200', 'reasonPhrase':'OK'},
+        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':'200', 'reasonPhrase':utils.givePhrase('200')},
         'responseHeaders': {},
         'responseBody': "Hello World"
     }
