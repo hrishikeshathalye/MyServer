@@ -46,17 +46,23 @@ class utils():
 		#According to the RFC, the body starts after a \r\n\r\n sequence
 		headerBodySplit = requestStr.split("\r\n\r\n", 1)
 		reqlineAndHeaders = headerBodySplit[0]
-		body = ''
+		requestBody = ''
 		#since the body maybe absent sometimes, this avoids an IndexError
 		if(len(headerBodySplit)>1):
-			body = headerBodySplit[1]
+			requestBody = headerBodySplit[1]
 		
 		headerFields = reqlineAndHeaders.strip().split('\r\n')
-		requestLine = headerFields[0]
-		headers = headerFields[1:]
+		#RFC : Request-Line = Method SP Request-URI SP HTTP-Version CRLF
+		requestFields = headerFields[0].split(" ")
+		requestHeaders = headerFields[1:]
+		requestLine = dict()
+		requestLine['method'] = requestFields[0]
+		#Request-URI = "*" | absoluteURI | abs_path | authority
+		requestLine['requestUri'] = requestFields[1]
+		requestLine['httpVersion'] = requestFields[2]
 
 		headersDict = dict()
-		for i in headers:
+		for i in requestHeaders:
 			keyValSplit = i.split(':', 1)
 			key = keyValSplit[0]
 			val = keyValSplit[1]
@@ -64,16 +70,37 @@ class utils():
 			#Some values maybe case sensitive or otherwise, depending on key, THAT CASE NOT HANDLED
 			headersDict[key.strip().lower()] = val.strip()
 		
-		headers = headersDict
-		#At this point requestLine(string), headers(dictionary) and body(string) constitute the entire message
+		requestHeaders = headersDict
+		"""
+		    request-header = Accept	   ; Section 14.1
+        	| Accept-Charset		   ; Section 14.2
+        	| Accept-Encoding          ; Section 14.3
+        	| Accept-Language          ; Section 14.4
+            | Authorization            ; Section 14.8
+            | Expect                   ; Section 14.20
+            | From                     ; Section 14.22
+            | Host                     ; Section 14.23
+            | If-Match                 ; Section 14.24
+			| If-Modified-Since        ; Section 14.25
+            | If-None-Match            ; Section 14.26
+            | If-Range                 ; Section 14.27
+            | If-Unmodified-Since      ; Section 14.28
+            | Max-Forwards             ; Section 14.31
+            | Proxy-Authorization      ; Section 14.34
+            | Range                    ; Section 14.35
+            | Referer                  ; Section 14.36
+            | TE                       ; Section 14.39
+            | User-Agent               ; Section 14.43
+		"""
+		#At this point requestLine(dictionary), headers(dictionary) and body(string) constitute the entire message
 		#uncomment line below if debugging to compare with original requestStr
 		#print(requestStr)
-		print("Request Line :")
-		print(requestLine)
-		print("Headers :")
-		print(headers)
-		print("Body :")
-		print(body)
+		parsedRequest = {
+			'requestLine': requestLine, 
+			'requestHeaders': requestHeaders, 
+			'requestBody': requestBody
+		}
+		return parsedRequest
 
 	def responseBuilder(self, statusLine, headersDict, body):
 		"""
@@ -99,7 +126,7 @@ class Server:
 		self.tcpSocket.clientConnection.settimeout(5.0)
 		try:
 			request = self.tcpSocket.receive('utf-8')
-			self.utils.requestParser(request)
+			print(self.utils.requestParser(request))
 			response = "HTTP/1.1 200 OK\r\n\r\nHello, World!"
 			self.tcpSocket.send(response, 'utf-8')
 		except:
