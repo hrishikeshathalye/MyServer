@@ -49,7 +49,7 @@ class Server:
 		"""
 		server spawns worker threads
 		"""
-		self.tcpSocket.clientConnection.settimeout(5.0)
+		self.tcpSocket.clientConnection.settimeout(10.0)
 		try:
 			request = self.tcpSocket.receive('utf-8')
 			parsedRequest = utils.requestParser(request)
@@ -60,7 +60,7 @@ class Server:
 				'HEAD': requestHandlers.head,
 				'DELETE': requestHandlers.delete,
 			}
-			handler = switch.get(parsedRequest['requestLine']['method'], lambda: "Invalid Method")
+			handler = switch.get(parsedRequest['requestLine']['method'], requestHandlers.other)
 			responseDict = handler(parsedRequest)
 			responseString = utils.responseBuilder(responseDict)
 			self.tcpSocket.send(responseString, 'utf-8')
