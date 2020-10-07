@@ -6,40 +6,16 @@ import utils
 #call utils.responseBuilder in main
 
 """
-general-header = Cache-Control            ; Section 14.9
-                      | Connection               ; Section 14.10
-                      | Date                     ; Section 14.18
-                      | Pragma                   ; Section 14.32
-                      | Trailer                  ; Section 14.40
-                      | Transfer-Encoding        ; Section 14.41
-                      | Upgrade                  ; Section 14.42
-                      | Via                      ; Section 14.45
-                      | Warning                  ; Section 14.46
-"""
-
-"""
-    response-header = 
-    Accept-Ranges           ; Section 14.5
-    Age                     ; Section 14.6
-    ETag                    ; Section 14.19
-    Location                ; Section 14.30
-    Proxy-Authenticate      ; Section 14.33
-    Retry-After             ; Section 14.37
-    Server                  ; Section 14.38
-    Vary                    ; Section 14.44
-    WWW-Authenticate        ; Section 14.47
-    entity-header  = 
-    Allow                    ; Section 14.7
-    Content-Encoding         ; Section 14.11
-    Content-Language         ; Section 14.12
-    Content-Length           ; Section 14.13
-    Content-Location         ; Section 14.14
-    Content-MD5              ; Section 14.15
-    Content-Range            ; Section 14.16
-    Content-Type             ; Section 14.17
-    Expires                  ; Section 14.21
-    Last-Modified            ; Section 14.29
-    extension-header
+general-header = 
+    Cache-Control            ; Section 14.9
+    Connection               ; Section 14.10
+    Date                     ; Section 14.18
+    Pragma                   ; Section 14.32
+    Trailer                  ; Section 14.40
+    Transfer-Encoding        ; Section 14.41
+    Upgrade                  ; Section 14.42
+    Via                      ; Section 14.45
+    Warning                  ; Section 14.46
 """
 
 #following requestHeaders to be handled
@@ -64,9 +40,37 @@ general-header = Cache-Control            ; Section 14.9
     | TE                       ; Section 14.39
     | User-Agent               ; Section 14.43
 """
+"""
+    response-header = 
+    Accept-Ranges           ; Section 14.5
+    Age                     ; Section 14.6
+    ETag                    ; Section 14.19
+    Location                ; Section 14.30
+    Proxy-Authenticate      ; Section 14.33
+    Retry-After             ; Section 14.37
+    Server                  ; Section 14.38
+    Vary                    ; Section 14.44
+    WWW-Authenticate        ; Section 14.47
+"""
+"""
+    entity-header  = 
+    Allow                    ; Section 14.7
+    Content-Encoding         ; Section 14.11
+    Content-Language         ; Section 14.12
+    Content-Length           ; Section 14.13
+    Content-Location         ; Section 14.14
+    Content-MD5              ; Section 14.15
+    Content-Range            ; Section 14.16
+    Content-Type             ; Section 14.17
+    Expires                  ; Section 14.21
+    Last-Modified            ; Section 14.29
+    extension-header
+"""
 		
 
 def get(requestDict):
+    # relUrl = requestDict['requestLine']['requestUri'].split('/', 1)
+    # relUrl = relUrl[1]
     responseDict = {
         'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':'200', 'reasonPhrase':utils.givePhrase('200')},
         'responseHeaders': {},
@@ -75,10 +79,15 @@ def get(requestDict):
     return responseDict
 
 def post(requestDict):
-    relUrl = requestDict['requestLine']['requestUri'].split('/', 1)
-    relUrl = relUrl[1]
-    
-    pass
+    responseDict = {
+        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':'200', 'reasonPhrase':utils.givePhrase('200')},
+        'responseHeaders': {
+            'Connection': 'close',
+            'Date': utils.rfcDate(),         
+        },
+        'responseBody': ""
+    }
+    return responseDict
 
 def put(requestDict):
     pass

@@ -1,3 +1,4 @@
+from datetime import datetime
 def requestParser(requestStr):
 		"""
 		accept request string, return dictionary
@@ -53,7 +54,7 @@ def responseBuilder(responseDict):
     body = responseDict['responseBody']
     responseStr = statusLine + "\r\n"
     for headerKey in headersDict:
-        responseStr = headerKey+": "+headersDict[headerKey]+"\r\n"
+        responseStr += headerKey+": "+headersDict[headerKey]+"\r\n"
     responseStr+="\r\n"
     responseStr+=body
     return responseStr
@@ -102,3 +103,12 @@ def givePhrase(statusCode):
 		"505" : "HTTP Version not supported"
 	}
 	return lookup[str(statusCode)]
+
+def rfcDate():
+	"""Return a string representation of a date according to RFC 1123
+	(HTTP/1.1).
+	"""
+	dt = datetime.utcnow()
+	weekday = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][dt.weekday()]
+	month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][dt.month - 1]
+	return "%s, %02d %s %04d %02d:%02d:%02d GMT" % (weekday, dt.day, month, dt.year, dt.hour, dt.minute, dt.second)
