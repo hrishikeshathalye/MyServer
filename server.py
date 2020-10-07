@@ -1,8 +1,7 @@
 import socket
 import threading
-import sys
-import os
 import utils
+import requestHandlers
 #class to encapsulate most socket functions
 class tcpSocket:
 	def __init__(self, host, port):
@@ -53,10 +52,20 @@ class Server:
 		self.tcpSocket.clientConnection.settimeout(5.0)
 		try:
 			request = self.tcpSocket.receive('utf-8')
-			print(utils.requestParser(request))
-			response = "HTTP/1.1 200 OK\r\n\r\nHello, World!"
-			self.tcpSocket.send(response, 'utf-8')
-		except:
+			parsedRequest = utils.requestParser(request)
+			switch={
+				'GET': requestHandlers.get,
+				'POST': requestHandlers.post,
+				'PUT': requestHandlers.put,
+				'HEAD': requestHandlers.head,
+				'DELETE': requestHandlers.delete,
+			}
+			handler = switch.get(parsedRequest['requestLine']['method'], lambda: "Invalid Method")
+			responseDict = handler(parsedRequest)
+			responseString = utils.responseBuilder(responseDict)
+			self.tcpSocket.send(responseString, 'utf-8')
+		except Exception as x:
+			print(x)
 			pass
 		finally:
 			self.tcpSocket.close()
