@@ -75,6 +75,9 @@ def get(requestDict):
     return responseDict
 
 def post(requestDict):
+    relUrl = requestDict['requestLine']['requestUri'].split('/', 1)
+    relUrl = relUrl[1]
+    
     pass
 
 def put(requestDict):

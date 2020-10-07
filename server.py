@@ -64,8 +64,7 @@ class Server:
 			responseDict = handler(parsedRequest)
 			responseString = utils.responseBuilder(responseDict)
 			self.tcpSocket.send(responseString, 'utf-8')
-		except Exception as x:
-			print(x)
+		except socket.timeout:
 			pass
 		finally:
 			self.tcpSocket.close()
@@ -79,7 +78,7 @@ class Server:
 		while self.status:
 			try:
 				self.tcpSocket.accept()
-			except:
+			except BlockingIOError:
 				continue
 			else:
 				workerThread = threading.Thread(target=self.worker)
