@@ -50,24 +50,36 @@ class Server:
 		server spawns worker threads
 		"""
 		self.tcpSocket.clientConnection.settimeout(10.0)
-		try:
-			request = self.tcpSocket.receive('utf-8')
-			parsedRequest = utils.requestParser(request)
-			switch={
-				'GET': requestHandlers.get,
-				'POST': requestHandlers.post,
-				'PUT': requestHandlers.put,
-				'HEAD': requestHandlers.head,
-				'DELETE': requestHandlers.delete,
-			}
-			handler = switch.get(parsedRequest['requestLine']['method'], requestHandlers.other)
-			responseDict = handler(parsedRequest)
-			responseString = utils.responseBuilder(responseDict)
-			self.tcpSocket.send(responseString, 'utf-8')
-		except socket.timeout:
-			pass
-		finally:
-			self.tcpSocket.close()
+		fullRequest = ''
+		request = ''
+		while(request != '\r\n'):
+			try:
+				request = self.tcpSocket.receive('utf-8')
+				fullRequest += request
+			except socket.timeout:
+				self.tcpSocket.close()
+				return
+		parsedRequest = utils.requestParser(fullRequest)
+		if(('content-length' in parsedRequest['requestHeaders']) or ('transfer-encoding' in parsedRequest['requestHeaders'])):
+			contentLength = int(parsedRequest['requestHeaders']['content-length'])
+			sizeRead=0
+			while(sizeRead<contentLength):
+				tmpData = self.tcpSocket.clientConnection.recv(contentLength-sizeRead)
+				sizeRead+=len(tmpData)
+				fullRequest += tmpData.decode('utf-8')
+			parsedRequest = utils.requestParser(fullRequest)
+		switch={
+			'GET': requestHandlers.get,
+			'POST': requestHandlers.post,
+			'PUT': requestHandlers.put,
+			'HEAD': requestHandlers.head,
+			'DELETE': requestHandlers.delete,
+		}
+		handler = switch.get(parsedRequest['requestLine']['method'], requestHandlers.other)
+		responseDict = handler(parsedRequest)
+		responseString = utils.responseBuilder(responseDict)
+		self.tcpSocket.send(responseString, 'utf-8')
+		self.tcpSocket.close()
 		
 	def serve(self):
 		"""

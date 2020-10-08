@@ -11,7 +11,7 @@ Note: Servers ought to be cautious about depending on URI lengths
       http://ABC.com/%7Esmith/home.html
       http://ABC.com:/%7esmith/home.html
 
-3.  HTTP/1.1 clients and servers that parse the date value MUST accept
+(HANDLED)  HTTP/1.1 clients and servers that parse the date value MUST accept
    all three formats (for compatibility with HTTP/1.0), though they MUST
    only generate the RFC 1123 format for representing HTTP-date values
    in header fields.
@@ -21,4 +21,15 @@ Note: Servers ought to be cautious about depending on URI lengths
    connection. A server MUST NOT send transfer-codings to an HTTP/1.0
    client.
    
- 
+ 5.  The presence of a message-body in a request is signaled by the inclusion of a Content-Length 
+ or Transfer-Encoding header field in the request's message-headers. 
+ A message-body MUST NOT be included in a request if the specification of the request method 
+ (section 5.1.1) does not allow sending an entity-body in requests. 
+ A server SHOULD read and forward a message-body on any request; 
+ if the request method does not include defined semantics for an entity-body, 
+ then the message-body SHOULD be ignored when handling the request.
+
+For response messages, whether or not a message-body is included with a message is dependent on both the request method and the response status code (section 6.1.1). 
+All responses to the HEAD request method MUST NOT include a message-body, even though the presence of entity- header fields might lead one to believe they do. 
+All 1xx (informational), 204 (no content), and 304 (not modified) responses MUST NOT include a message-body. 
+All other responses do include a message-body, although it MAY be of zero length. 

@@ -83,9 +83,9 @@ def post(requestDict):
         'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':'200', 'reasonPhrase':utils.givePhrase('200')},
         'responseHeaders': {
             'Connection': 'close',
-            'Date': utils.rfcDate(),         
+            'Date': utils.rfcDate(),            
         },
-        'responseBody': ""
+        'responseBody': requestDict['requestBody']
     }
     return responseDict
 
