@@ -85,7 +85,7 @@ def post(requestDict):
             'Connection': 'close',
             'Date': utils.rfcDate(),            
         },
-        'responseBody': requestDict['requestBody']
+        'responseBody': ""
     }
     return responseDict
 
