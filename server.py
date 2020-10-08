@@ -52,9 +52,10 @@ class Server:
 		self.tcpSocket.clientConnection.settimeout(10.0)
 		fullRequest = ''
 		request = ''
-		while(request != '\r\n'):
+		while(fullRequest.find('\r\n\r\n') == -1):
 			try:
 				request = self.tcpSocket.receive('utf-8')
+				#to check if entire message sent at once
 				fullRequest += request
 			except socket.timeout:
 				self.tcpSocket.close()
@@ -62,12 +63,23 @@ class Server:
 		parsedRequest = utils.requestParser(fullRequest)
 		if(('content-length' in parsedRequest['requestHeaders']) or ('transfer-encoding' in parsedRequest['requestHeaders'])):
 			contentLength = int(parsedRequest['requestHeaders']['content-length'])
-			sizeRead=0
+			sizeRead=0 #bytes read till now
+			#you indicated a non zero content length but did not give further data so wait to get data
 			while(sizeRead<contentLength):
-				tmpData = self.tcpSocket.clientConnection.recv(contentLength-sizeRead)
+				#data parsed till now is already >= content-length so break
+				if(len(parsedRequest['requestBody'])>=contentLength):
+					break
+				try:
+					tmpData = self.tcpSocket.clientConnection.recv(contentLength-sizeRead)
+				except socket.timeout:
+					self.tcpSocket.close()
+					return
 				sizeRead+=len(tmpData)
 				fullRequest += tmpData.decode('utf-8')
 			parsedRequest = utils.requestParser(fullRequest)
+			#handle padding with blank space if content-length greater than body
+			#handle shortening of body in case of entire body at once (handled)
+			parsedRequest['requestBody'] = parsedRequest['requestBody'][0:contentLength]
 		switch={
 			'GET': requestHandlers.get,
 			'POST': requestHandlers.post,
