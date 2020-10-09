@@ -14,26 +14,30 @@ class tcpSocket:
 		#SO_REUSEADDR allows reuse of sockets set in TIME_WAIT state
 		#it also does not block all ports hence to be used if using HOST as ''
 		self.socketVar.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		#timeout on accept function
+		self.socketVar.settimeout(0)
 		self.socketVar.bind((host, port))
 		self.socketVar.listen(5)
 
 	def accept(self):
-		self.clientConnection, self.clientAddress = self.socketVar.accept()
+		clientConnection, clientAddress = self.socketVar.accept()
+		clientConnection.settimeout(10.0)
+		return clientConnection
 
-	def receive(self, decodingScheme):
+	def receive(self, clientConnection, bufSize , decodingScheme):
 		"""
 		receive and decode according to passed scheme
 		"""
-		return self.clientConnection.recv(1024).decode(decodingScheme)
+		return clientConnection.recv(bufSize).decode(decodingScheme)
 
-	def send(self, response, encodingScheme):
+	def send(self, clientConnection, response, encodingScheme):
 		"""
 		encodes and sends
 		"""
-		self.clientConnection.sendall(response.encode(encodingScheme))
+		clientConnection.sendall(response.encode(encodingScheme))
 	
-	def close(self):
-		self.clientConnection.close()
+	def close(self, clientConnection):
+		clientConnection.close()
 	
 class Server:	
 	def __init__(self, host, port):
@@ -42,23 +46,20 @@ class Server:
 		#variable to check if server is serving 1 - running, 0 - stopped
 		self.status = 0
 		self.tcpSocket = tcpSocket(host, port)
-		#timeout on accept function
-		self.tcpSocket.socketVar.settimeout(0)
 
-	def worker(self):
+	def worker(self, clientConnection):
 		"""
 		server spawns worker threads
 		"""
-		self.tcpSocket.clientConnection.settimeout(10.0)
 		fullRequest = ''
 		request = ''
 		while(fullRequest.find('\r\n\r\n') == -1):
 			try:
-				request = self.tcpSocket.receive('utf-8')
+				request = self.tcpSocket.receive(clientConnection, 1024 ,'utf-8')
 				#to check if entire message sent at once
 				fullRequest += request
 			except socket.timeout:
-				self.tcpSocket.close()
+				self.tcpSocket.close(clientConnection)
 				return
 		parsedRequest = utils.requestParser(fullRequest)
 		if(('content-length' in parsedRequest['requestHeaders']) or ('transfer-encoding' in parsedRequest['requestHeaders'])):
@@ -70,9 +71,9 @@ class Server:
 				if(len(parsedRequest['requestBody'])>=contentLength):
 					break
 				try:
-					tmpData = self.tcpSocket.clientConnection.recv(contentLength-sizeRead)
+					tmpData = self.tcpSocket.receive(clientConnection, contentLength-sizeRead, 'utf-8')
 				except socket.timeout:
-					self.tcpSocket.close()
+					self.tcpSocket.close(clientConnection)
 					return
 				sizeRead+=len(tmpData)
 				fullRequest += tmpData.decode('utf-8')
@@ -90,8 +91,8 @@ class Server:
 		handler = switch.get(parsedRequest['requestLine']['method'], requestHandlers.other)
 		responseDict = handler(parsedRequest)
 		responseString = utils.responseBuilder(responseDict)
-		self.tcpSocket.send(responseString, 'utf-8')
-		self.tcpSocket.close()
+		self.tcpSocket.send(clientConnection, responseString, 'utf-8')
+		self.tcpSocket.close(clientConnection)
 		
 	def serve(self):
 		"""
@@ -101,11 +102,11 @@ class Server:
 		self.status = 1
 		while self.status:
 			try:
-				self.tcpSocket.accept()
+				clientConnection = self.tcpSocket.accept()
 			except BlockingIOError:
 				continue
 			else:
-				workerThread = threading.Thread(target=self.worker)
+				workerThread = threading.Thread(target=self.worker, args=(clientConnection,))
 				self.threads.append(workerThread)
 				workerThread.start()
 	
