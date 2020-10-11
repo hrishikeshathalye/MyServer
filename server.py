@@ -92,7 +92,10 @@ class Server:
 			loggingInfo[clientConnection]['time'] =  "["+utils.logDate()+"]"
 			parsedRequest = utils.requestParser(fullRequest)
 			loggingInfo[clientConnection]['requestLine'] = '"'+fullRequest.split('\r\n', 1)[0]+'"'
-			loggingInfo[clientConnection]['userAgent'] = f'"{parsedRequest["requestHeaders"]["user-agent"]}"'
+			if('user-agent' in parsedRequest["requestHeaders"]):
+				loggingInfo[clientConnection]['userAgent'] = f'"{parsedRequest["requestHeaders"]["user-agent"]}"'
+			if('referer' in parsedRequest["requestHeaders"]):
+				loggingInfo[clientConnection]['referer'] = f'"{parsedRequest["requestHeaders"]["referer"]}"'
 			if(('content-length' in parsedRequest['requestHeaders']) or ('transfer-encoding' in parsedRequest['requestHeaders'])):
 				contentLength = int(parsedRequest['requestHeaders']['content-length'])
 				sizeRead=0 #bytes read till now
