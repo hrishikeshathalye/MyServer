@@ -73,8 +73,8 @@ def get(requestDict):
     # relUrl = relUrl[1]
     responseDict = {
         'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':'200', 'reasonPhrase':utils.givePhrase('200')},
-        'responseHeaders': {},
-        'responseBody': "Hello World\n"
+        'responseHeaders': {'Connection':'close'},
+        'responseBody': "<h1>Hello World</h1>\n"
     }
     return responseDict
 
