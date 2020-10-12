@@ -93,13 +93,14 @@ def get(requestDict):
     config.read('conf/myserver.conf')
     requestLine = requestDict['requestLine']
     uri = requestLine['requestUri'] 
+    uri = uri.lstrip('/')
     path = urlparse(uri).path
     with open('media-types/content-type.json','r') as jf:
         typedict = json.load(jf) 
-    if not path:
-        path = '/'
+    path = path.lstrip('/')    
+    path = '/' + path
     if path == '/':
-        path = '/index.html'
+        path = '/index.html'  
     path = config['DEFAULT']['DocumentRoot'] + path
     if not os.path.isfile(path):
         path = config['DEFAULT']['error-pages'] + '/404.html'
