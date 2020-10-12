@@ -96,11 +96,11 @@ def get(requestDict):
         typedict = json.load(jf) 
     if not path:
         path = '/'
-    if path is '/':
+    if path == '/':
         path = '/index.html'
     path = config['DEFAULT']['DocumentRoot'] + path
     if not os.path.isfile(path):
-        path = config['DEFAULT']['DocumentRoot'] + '/404.html'
+        path = config['DEFAULT']['error-pages'] + '/404.html'
         statusCode = '404'
     else:
         statusCode = '200'      
@@ -109,14 +109,12 @@ def get(requestDict):
     extension = pathlib.Path(path).suffix
     subtype = extension[1:]  
     responseDict = {
-        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode': statusCode, 'reasonPhrase':utils.givePhrase('200')},
+        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode': statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
         'responseHeaders': {
             'Connection' : 'close',
             'Date' : utils.rfcDate(),
             'Content-Type' : typedict.get(subtype,'application/example')
-            
-        },
-         
+        }, 
         'responseBody': f_bytes
     }
     return responseDict
