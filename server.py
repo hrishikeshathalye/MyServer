@@ -46,17 +46,19 @@ class Server:
 		self.threads = []
 		#variable to check if server is serving 1 - running, 0 - stopped
 		self.status = 1
+		self.loggerStatus = 1
 		self.tcpSocket = tcpSocket(host, port)
 		self.logQueue = []
-		loggerThread = threading.Thread(target=self.logger)
-		self.threads.append(loggerThread)
-		loggerThread.start()
+		self.logLock = threading.Lock()
+		self.loggerThread = threading.Thread(target=self.logger)
+		self.loggerThread.start()
 
 	def logger(self):
 		f = open("log/access.log", 'a')
-		while(self.status):
+		while(self.loggerStatus):
 			while(len(self.logQueue)):
-				f.write(self.logQueue.pop(0)+"\n")
+				with self.logLock:
+					f.write(self.logQueue.pop(0)+"\n")
 				f.flush()
 				os.fsync(f.fileno())
 		f.close()
@@ -65,8 +67,7 @@ class Server:
 		"""
 		server spawns worker threads
 		"""
-		loggingInfo=dict()
-		loggingInfo[clientConnection]={
+		loggingInfo={
 			'laddr':clientConnection.getpeername()[0],
 			'identity':'-',
 			'userid':'-',
@@ -86,16 +87,10 @@ class Server:
 					#to check if entire message sent at once
 					fullRequest += request
 				except socket.timeout:
-					clientConnection.shutdown(socket.SHUT_RDWR)
 					self.tcpSocket.close(clientConnection)
 					return
-			loggingInfo[clientConnection]['time'] =  "["+utils.logDate()+"]"
+			loggingInfo['time'] =  "["+utils.logDate()+"]"
 			parsedRequest = utils.requestParser(fullRequest)
-			loggingInfo[clientConnection]['requestLine'] = '"'+fullRequest.split('\r\n', 1)[0]+'"'
-			if('user-agent' in parsedRequest["requestHeaders"]):
-				loggingInfo[clientConnection]['userAgent'] = f'"{parsedRequest["requestHeaders"]["user-agent"]}"'
-			if('referer' in parsedRequest["requestHeaders"]):
-				loggingInfo[clientConnection]['referer'] = f'"{parsedRequest["requestHeaders"]["referer"]}"'
 			if(('content-length' in parsedRequest['requestHeaders']) or ('transfer-encoding' in parsedRequest['requestHeaders'])):
 				contentLength = int(parsedRequest['requestHeaders']['content-length'])
 				sizeRead=0 #bytes read till now
@@ -107,7 +102,6 @@ class Server:
 					try:
 						tmpData = self.tcpSocket.receive(clientConnection, contentLength-sizeRead, 'utf-8')
 					except socket.timeout:
-						clientConnection.shutdown(socket.SHUT_RDWR)
 						self.tcpSocket.close(clientConnection)
 						return
 					sizeRead+=len(tmpData)
@@ -126,17 +120,26 @@ class Server:
 			}
 			handler = switch.get(parsedRequest['requestLine']['method'], requestHandlers.other)
 			responseDict = handler(parsedRequest)
-			loggingInfo[clientConnection]['statusCode'] = responseDict['statusLine']['statusCode']
-			if('responseBody' in responseDict):
-				loggingInfo[clientConnection]['dataSize'] = len(responseDict['responseBody'])
 			responseString = utils.responseBuilder(responseDict)
 			self.tcpSocket.send(clientConnection, responseString, 'utf-8')
-			log = utils.logAccess(loggingInfo[clientConnection])
-			self.logQueue.append(log)
+			loggingInfo['statusCode'] = responseDict['statusLine']['statusCode']
+			loggingInfo['requestLine'] = '"'+fullRequest.split('\r\n', 1)[0]+'"'
+			if('responseBody' in responseDict):
+				loggingInfo['dataSize'] = len(responseDict['responseBody'])
+			if('user-agent' in parsedRequest["requestHeaders"]):
+				loggingInfo['userAgent'] = f'"{parsedRequest["requestHeaders"]["user-agent"]}"'
+			if('referer' in parsedRequest["requestHeaders"]):
+				loggingInfo['referer'] = f'"{parsedRequest["requestHeaders"]["referer"]}"'
+			log = utils.logAccess(loggingInfo)
 			if(('Connection' in responseDict['responseHeaders']) and responseDict['responseHeaders']['Connection'].lower() == 'close'):
-				break
-		clientConnection.shutdown(socket.SHUT_RDWR)
-		self.tcpSocket.close(clientConnection)
+				# clientConnection.shutdown(socket.SHUT_RDWR)
+				self.tcpSocket.close(clientConnection)
+				with self.logLock:
+					self.logQueue.append(log)
+				return
+			else:
+				with self.logLock:
+					self.logQueue.append(log)
 	
 	def serve(self):
 		"""
@@ -165,6 +168,8 @@ class Server:
 		for thread in self.threads:
 			thread.join()
 		print("All pending requests served.")
+		self.loggerStatus=0
+		self.loggerThread.join()
 		print("Server has stopped.")
 
 	# def restart(self):
