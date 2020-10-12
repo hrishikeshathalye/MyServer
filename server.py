@@ -34,7 +34,7 @@ class tcpSocket:
 		"""
 		encodes and sends
 		"""
-		clientConnection.sendall(response.encode(encodingScheme))
+		clientConnection.sendall(response)
 	
 	def close(self, clientConnection):
 		clientConnection.close()

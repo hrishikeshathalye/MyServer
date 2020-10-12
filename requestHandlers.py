@@ -1,6 +1,11 @@
 #module to handle all kinds of requests
 import utils
-
+from urllib.parse import urlparse
+import configparser
+import os
+import codecs
+import pathlib
+import json
 #pass parsed request to these functions
 #expect them to return the response fields as a dictionary
 #call utils.responseBuilder in main
@@ -66,15 +71,53 @@ general-header =
     Last-Modified            ; Section 14.29
     extension-header
 """
-		
+#Following are the supported media types		
+"""
+    application
+    example
+    image
+    text
+    audio
+    video
+    font 
+    model
+"""
+
 
 def get(requestDict):
     # relUrl = requestDict['requestLine']['requestUri'].split('/', 1)
     # relUrl = relUrl[1]
+    config = configparser.ConfigParser()
+    config.read('conf/myserver.conf')
+    requestLine = requestDict['requestLine']
+    uri = requestLine['requestUri'] 
+    path = urlparse(uri).path
+    with open('media-types/content-type.json','r') as jf:
+        typedict = json.load(jf) 
+    if not path:
+        path = '/'
+    if path is '/':
+        path = '/index.html'
+    path = config['DEFAULT']['DocumentRoot'] + path
+    if not os.path.isfile(path):
+        path = config['DEFAULT']['DocumentRoot'] + '/404.html'
+        statusCode = '404'
+    else:
+        statusCode = '200'      
+    with open(path,'rb') as f:
+        f_bytes = f.read()
+    extension = pathlib.Path(path).suffix
+    subtype = extension[1:]  
     responseDict = {
-        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':'200', 'reasonPhrase':utils.givePhrase('200')},
-        'responseHeaders': {},
-        'responseBody': "Hello World\n"
+        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode': statusCode, 'reasonPhrase':utils.givePhrase('200')},
+        'responseHeaders': {
+            'Connection' : 'close',
+            'Date' : utils.rfcDate(),
+            'Content-Type' : typedict.get(subtype,'application/example')
+            
+        },
+         
+        'responseBody': f_bytes
     }
     return responseDict
 
@@ -105,3 +148,4 @@ def other(requestDict):
         'responseBody': ""
     }
     return responseDict
+  
