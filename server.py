@@ -1,5 +1,6 @@
 import socket
 import threading
+import os
 import utils
 import requestHandlers
 #class to encapsulate most socket functions
@@ -44,62 +45,104 @@ class Server:
 		#A variable which contains all thread objects
 		self.threads = []
 		#variable to check if server is serving 1 - running, 0 - stopped
-		self.status = 0
+		self.status = 1
 		self.tcpSocket = tcpSocket(host, port)
+		self.logQueue = []
+		loggerThread = threading.Thread(target=self.logger)
+		self.threads.append(loggerThread)
+		loggerThread.start()
+
+	def logger(self):
+		f = open("log/access.log", 'a')
+		while(self.status):
+			while(len(self.logQueue)):
+				f.write(self.logQueue.pop(0)+"\n")
+				f.flush()
+				os.fsync(f.fileno())
+		f.close()
 
 	def worker(self, clientConnection):
 		"""
 		server spawns worker threads
 		"""
-		fullRequest = ''
-		request = ''
-		while(fullRequest.find('\r\n\r\n') == -1):
-			try:
-				request = self.tcpSocket.receive(clientConnection, 1024 ,'utf-8')
-				#to check if entire message sent at once
-				fullRequest += request
-			except socket.timeout:
-				self.tcpSocket.close(clientConnection)
-				return
-		parsedRequest = utils.requestParser(fullRequest)
-		if(('content-length' in parsedRequest['requestHeaders']) or ('transfer-encoding' in parsedRequest['requestHeaders'])):
-			contentLength = int(parsedRequest['requestHeaders']['content-length'])
-			sizeRead=0 #bytes read till now
-			#you indicated a non zero content length but did not give further data so wait to get data
-			while(sizeRead<contentLength):
-				#data parsed till now is already >= content-length so break
-				if(len(parsedRequest['requestBody'])>=contentLength):
-					break
+		loggingInfo=dict()
+		loggingInfo[clientConnection]={
+			'laddr':clientConnection.getpeername()[0],
+			'identity':'-',
+			'userid':'-',
+			'time':'-',
+			'requestLine':'"-"',
+			'statusCode':'-',
+			'dataSize':0,
+			'referer':'"-"',
+			'userAgent':'"-"'
+		}
+		while self.status:
+			fullRequest = ''
+			request = ''
+			while(fullRequest.find('\r\n\r\n') == -1):
 				try:
-					tmpData = self.tcpSocket.receive(clientConnection, contentLength-sizeRead, 'utf-8')
+					request = self.tcpSocket.receive(clientConnection, 1024 ,'utf-8')
+					#to check if entire message sent at once
+					fullRequest += request
 				except socket.timeout:
+					clientConnection.shutdown(socket.SHUT_RDWR)
 					self.tcpSocket.close(clientConnection)
 					return
-				sizeRead+=len(tmpData)
-				fullRequest += tmpData.decode('utf-8')
+			loggingInfo[clientConnection]['time'] =  "["+utils.logDate()+"]"
 			parsedRequest = utils.requestParser(fullRequest)
-			#handle padding with blank space if content-length greater than body
-			#handle shortening of body in case of entire body at once (handled)
-			parsedRequest['requestBody'] = parsedRequest['requestBody'][0:contentLength]
-		switch={
-			'GET': requestHandlers.get,
-			'POST': requestHandlers.post,
-			'PUT': requestHandlers.put,
-			'HEAD': requestHandlers.head,
-			'DELETE': requestHandlers.delete,
-		}
-		handler = switch.get(parsedRequest['requestLine']['method'], requestHandlers.other)
-		responseDict = handler(parsedRequest)
-		responseString = utils.responseBuilder(responseDict)
-		self.tcpSocket.send(clientConnection, responseString, 'utf-8')
+			loggingInfo[clientConnection]['requestLine'] = '"'+fullRequest.split('\r\n', 1)[0]+'"'
+			if('user-agent' in parsedRequest["requestHeaders"]):
+				loggingInfo[clientConnection]['userAgent'] = f'"{parsedRequest["requestHeaders"]["user-agent"]}"'
+			if('referer' in parsedRequest["requestHeaders"]):
+				loggingInfo[clientConnection]['referer'] = f'"{parsedRequest["requestHeaders"]["referer"]}"'
+			if(('content-length' in parsedRequest['requestHeaders']) or ('transfer-encoding' in parsedRequest['requestHeaders'])):
+				contentLength = int(parsedRequest['requestHeaders']['content-length'])
+				sizeRead=0 #bytes read till now
+				#you indicated a non zero content length but did not give further data so wait to get data
+				while(sizeRead<contentLength):
+					#data parsed till now is already >= content-length so break
+					if(len(parsedRequest['requestBody'])>=contentLength):
+						break
+					try:
+						tmpData = self.tcpSocket.receive(clientConnection, contentLength-sizeRead, 'utf-8')
+					except socket.timeout:
+						clientConnection.shutdown(socket.SHUT_RDWR)
+						self.tcpSocket.close(clientConnection)
+						return
+					sizeRead+=len(tmpData)
+					fullRequest += tmpData.decode('utf-8')
+				parsedRequest = utils.requestParser(fullRequest)
+				#handle padding with blank space if content-length greater than body
+				#handle shortening of body in case of entire body at once (handled)
+				parsedRequest['requestBody'] = parsedRequest['requestBody'][0:contentLength]
+
+			switch={
+				'GET': requestHandlers.get,
+				'POST': requestHandlers.post,
+				'PUT': requestHandlers.put,
+				'HEAD': requestHandlers.head,
+				'DELETE': requestHandlers.delete,
+			}
+			handler = switch.get(parsedRequest['requestLine']['method'], requestHandlers.other)
+			responseDict = handler(parsedRequest)
+			loggingInfo[clientConnection]['statusCode'] = responseDict['statusLine']['statusCode']
+			if('responseBody' in responseDict):
+				loggingInfo[clientConnection]['dataSize'] = len(responseDict['responseBody'])
+			responseString = utils.responseBuilder(responseDict)
+			self.tcpSocket.send(clientConnection, responseString, 'utf-8')
+			log = utils.logAccess(loggingInfo[clientConnection])
+			self.logQueue.append(log)
+			if(('Connection' in responseDict['responseHeaders']) and responseDict['responseHeaders']['Connection'].lower() == 'close'):
+				break
+		clientConnection.shutdown(socket.SHUT_RDWR)
 		self.tcpSocket.close(clientConnection)
-		
+	
 	def serve(self):
 		"""
 		server serves requests
 		"""
 		print(f'Serving HTTP on port {self.tcpSocket.port} (stop/restart)...')
-		self.status = 1
 		while self.status:
 			try:
 				clientConnection = self.tcpSocket.accept()

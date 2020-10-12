@@ -1,5 +1,7 @@
 from datetime import datetime
 
+import time
+import math
 def requestParser(requestStr):
 		"""
 		accept request string, return dictionary
@@ -114,3 +116,22 @@ def rfcDate():
 	weekday = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][dt.weekday()]
 	month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][dt.month - 1]
 	return "%s, %02d %s %04d %02d:%02d:%02d GMT" % (weekday, dt.day, month, dt.year, dt.hour, dt.minute, dt.second)
+
+def logDate():
+	timezone = -time.timezone/3600
+	timezoneH = math.floor(timezone)
+	timezoneM = int((timezone-timezoneH)*60)
+	dt = datetime.now()
+	month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][dt.month - 1]
+	date = "%02d/%s/%04d:%02d:%02d:%02d +" % (dt.day, month, dt.year, dt.hour, dt.minute, dt.second)
+	date+=str(timezoneH)
+	date+=str(timezoneM)
+	return date
+
+def logAccess(loggingInfo):
+	log = ""
+	for i in loggingInfo:
+		log+=str(loggingInfo[i])+" "
+	return log
+
+# def logError():
