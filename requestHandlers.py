@@ -73,6 +73,7 @@ general-header =
 """
 #Following are the supported media types		
 """
+
     application
     example
     image
@@ -81,6 +82,7 @@ general-header =
     video
     font 
     model
+
 """
 
 
@@ -109,7 +111,7 @@ def get(requestDict):
     extension = pathlib.Path(path).suffix
     subtype = extension[1:]  
     responseDict = {
-        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode': statusCode, 'reasonPhrase':utils.givePhrase('200')},
+        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode': statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
         'responseHeaders': {
             'Connection' : 'close',
             'Date' : utils.rfcDate(),
