@@ -1,4 +1,5 @@
 from datetime import datetime
+
 import time
 import math
 def requestParser(requestStr):
@@ -58,6 +59,7 @@ def responseBuilder(responseDict):
     for headerKey in headersDict:
         responseStr += headerKey+": "+headersDict[headerKey]+"\r\n"
     responseStr+="\r\n"
+    responseStr = responseStr.encode()
     responseStr+=body
     return responseStr
 

@@ -33,3 +33,10 @@ For response messages, whether or not a message-body is included with a message 
 All responses to the HEAD request method MUST NOT include a message-body, even though the presence of entity- header fields might lead one to believe they do. 
 All 1xx (informational), 204 (no content), and 304 (not modified) responses MUST NOT include a message-body. 
 All other responses do include a message-body, although it MAY be of zero length. 
+
+6. An origin server SHOULD return the status code 405 (Method Not Allowed)
+   if the method is known by the origin server but not allowed for the
+   requested resource, and 501 (Not Implemented) if the method is
+   unrecognized or not implemented by the origin server.
+
+ 
