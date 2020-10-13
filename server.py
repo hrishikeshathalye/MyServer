@@ -1,6 +1,7 @@
 import socket
 import threading
 import os
+import queue
 import utils
 import requestHandlers
 #class to encapsulate most socket functions
@@ -48,17 +49,22 @@ class Server:
 		self.status = 1
 		self.loggerStatus = 1
 		self.tcpSocket = tcpSocket(host, port)
-		self.logQueue = []
-		self.logLock = threading.Lock()
+		self.logQueue = queue.Queue(10)
 		self.loggerThread = threading.Thread(target=self.logger)
 		self.loggerThread.start()
 
 	def logger(self):
 		f = open("log/access.log", 'a')
-		while(self.loggerStatus):
-			while(len(self.logQueue)):
-				with self.logLock:
-					f.write(self.logQueue.pop(0)+"\n")
+		while(True):
+			try:
+				log = self.logQueue.get(block=False)
+			except queue.Empty:
+				if(self.loggerStatus):
+					continue
+				else:
+					break
+			else:
+				f.write(log+"\n")
 				f.flush()
 				os.fsync(f.fileno())
 		f.close()
@@ -134,12 +140,10 @@ class Server:
 			if(('Connection' in responseDict['responseHeaders']) and responseDict['responseHeaders']['Connection'].lower() == 'close'):
 				# clientConnection.shutdown(socket.SHUT_RDWR)
 				self.tcpSocket.close(clientConnection)
-				with self.logLock:
-					self.logQueue.append(log)
+				self.logQueue.put(log)
 				return
 			else:
-				with self.logLock:
-					self.logQueue.append(log)
+				self.logQueue.put(log)
 	
 	def serve(self):
 		"""
