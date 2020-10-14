@@ -8,8 +8,8 @@ def requestParser(requestStr):
 		"""
 		requestStr = requestStr.strip()
 		#According to the RFC, the body starts after a \r\n\r\n sequence
-		headerBodySplit = requestStr.split("\r\n\r\n", 1)
-		reqlineAndHeaders = headerBodySplit[0]
+		headerBodySplit = requestStr.split("\r\n\r\n".encode(), 1)
+		reqlineAndHeaders = headerBodySplit[0].decode('utf-8')
 		requestBody = ''
 		#since the body maybe absent sometimes, this avoids an IndexError
 		if(len(headerBodySplit)>1):

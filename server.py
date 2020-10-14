@@ -26,13 +26,13 @@ class tcpSocket:
 		clientConnection.settimeout(10.0)
 		return clientConnection
 
-	def receive(self, clientConnection, bufSize , decodingScheme):
+	def receive(self, clientConnection, bufSize):
 		"""
 		receive and decode according to passed scheme
 		"""
-		return clientConnection.recv(bufSize).decode(decodingScheme)
+		return clientConnection.recv(bufSize)
 
-	def send(self, clientConnection, response, encodingScheme):
+	def send(self, clientConnection, response):
 		"""
 		encodes and sends
 		"""
@@ -85,11 +85,11 @@ class Server:
 			'userAgent':'"-"'
 		}
 		while self.status:
-			fullRequest = ''
-			request = ''
-			while(fullRequest.find('\r\n\r\n') == -1):
+			fullRequest = b''
+			request = b''
+			while(fullRequest.find('\r\n\r\n'.encode()) == -1):
 				try:
-					request = self.tcpSocket.receive(clientConnection, 1024 ,'utf-8')
+					request = self.tcpSocket.receive(clientConnection, 1024)
 					#to check if entire message sent at once
 					fullRequest += request
 				except socket.timeout:
@@ -106,16 +106,18 @@ class Server:
 					if(len(parsedRequest['requestBody'])>=contentLength):
 						break
 					try:
-						tmpData = self.tcpSocket.receive(clientConnection, contentLength-sizeRead, 'utf-8')
+						tmpData = self.tcpSocket.receive(clientConnection, contentLength-sizeRead)
 					except socket.timeout:
 						self.tcpSocket.close(clientConnection)
 						return
 					sizeRead+=len(tmpData)
-					fullRequest += tmpData.decode('utf-8')
+					fullRequest += tmpData
 				parsedRequest = utils.requestParser(fullRequest)
 				#handle padding with blank space if content-length greater than body
 				#handle shortening of body in case of entire body at once (handled)
 				parsedRequest['requestBody'] = parsedRequest['requestBody'][0:contentLength]
+			else:
+				parsedRequest['requestBody'] = ''.encode()
 
 			switch={
 				'GET': requestHandlers.get,
@@ -127,9 +129,9 @@ class Server:
 			handler = switch.get(parsedRequest['requestLine']['method'], requestHandlers.other)
 			responseDict = handler(parsedRequest)
 			responseString = utils.responseBuilder(responseDict)
-			self.tcpSocket.send(clientConnection, responseString, 'utf-8')
+			self.tcpSocket.send(clientConnection, responseString)
 			loggingInfo['statusCode'] = responseDict['statusLine']['statusCode']
-			loggingInfo['requestLine'] = '"'+fullRequest.split('\r\n', 1)[0]+'"'
+			loggingInfo['requestLine'] = '"'+(fullRequest.split('\r\n'.encode(), 1)[0]).decode('utf-8')+'"'
 			if('responseBody' in responseDict):
 				loggingInfo['dataSize'] = len(responseDict['responseBody'])
 			if('user-agent' in parsedRequest["requestHeaders"]):

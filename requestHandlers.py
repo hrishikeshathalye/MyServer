@@ -6,6 +6,10 @@ import os
 import codecs
 import pathlib
 import json
+import gzip
+import zlib
+import brotli
+import lzw3
 #pass parsed request to these functions
 #expect them to return the response fields as a dictionary
 #call utils.responseBuilder in main
@@ -20,7 +24,7 @@ general-header =
     Transfer-Encoding        ; Section 14.41
     Upgrade                  ; Section 14.42
     Via                      ; Section 14.45
-    Warning                  ; Section 14.46
+    *Warning                  ; Section 14.46
 """
 
 #following requestHeaders to be handled
@@ -123,6 +127,36 @@ def get(requestDict):
     return responseDict
 
 def post(requestDict):
+    #decode and log according to content encoding
+    """
+    The meaning of the Content-Location header in PUT or POST requests is
+    undefined; servers are free to ignore it in those cases. (ignored)
+    """
+    contentEncoding = requestDict['requestHeaders'].get('content-encoding', '')
+    contentEncoding = contentEncoding.split(',')
+    contentType = requestDict['requestHeaders'].get('content-type', '')
+    body = requestDict['requestBody']
+    for i in contentEncoding:
+        if(i.strip() == 'gzip' or i.strip() == 'x-gzip'):
+            body = gzip.decompress(body)
+        if(i.strip() == 'compress'):
+            body = lzw3.decompress(body)
+        if(i.strip() == 'deflate'):
+            body = zlib.decompress(body)
+        if(i.strip() == 'br'):
+            body = brotli.decompress(body)
+    print(body)
+    responseDict = {
+        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':'200', 'reasonPhrase':utils.givePhrase('200')},
+        'responseHeaders': {
+            'Connection': 'close',
+            'Date': utils.rfcDate(),            
+        },
+        'responseBody': "Data Logged".encode()
+    }
+    return responseDict
+
+def put(requestDict):
     responseDict = {
         'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':'200', 'reasonPhrase':utils.givePhrase('200')},
         'responseHeaders': {
@@ -131,21 +165,35 @@ def post(requestDict):
         },
         'responseBody': ""
     }
-    return responseDict
-
-def put(requestDict):
-    pass
 
 def head(requestDict):
-    pass
+    responseDict = {
+        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':'200', 'reasonPhrase':utils.givePhrase('200')},
+        'responseHeaders': {
+            'Connection': 'close',
+            'Date': utils.rfcDate(),            
+        },
+        'responseBody': ""
+    }
 
 def delete(requestDict):
-    pass
+    responseDict = {
+        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':'200', 'reasonPhrase':utils.givePhrase('200')},
+        'responseHeaders': {
+            'Connection': 'close',
+            'Date': utils.rfcDate(),            
+        },
+        'responseBody': ""
+    }
 
 def other(requestDict):
+    statusCode = '501'
     responseDict = {
-        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':'501', 'reasonPhrase':utils.givePhrase('501')},
-        'responseHeaders': {},
+        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
+        'responseHeaders': {
+            'Connection': 'close',
+            'Date': utils.rfcDate(),            
+        },
         'responseBody': ""
     }
     return responseDict
