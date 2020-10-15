@@ -1,6 +1,6 @@
 #module to handle all kinds of requests
 import utils
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 import configparser
 import os
 import codecs
@@ -127,27 +127,44 @@ def get(requestDict):
     return responseDict
 
 def post(requestDict):
-    #decode and log according to content encoding
     """
     The meaning of the Content-Location header in PUT or POST requests is
     undefined; servers are free to ignore it in those cases. (ignored)
     """
+    with open('media-types/content-type-rev.json','r') as f:
+        typeToExt = json.load(f) 
     contentEncoding = requestDict['requestHeaders'].get('content-encoding', '')
     contentEncoding = contentEncoding.split(',')
     contentType = requestDict['requestHeaders'].get('content-type', '')
+    contentExt =  typeToExt.get(contentType, '')
     body = requestDict['requestBody']
+    #decoding according to content-encoding
     for i in contentEncoding:
-        if(i.strip() == 'gzip' or i.strip() == 'x-gzip'):
+        i=i.strip()
+        if(i == 'gzip' or i == 'x-gzip'):
             body = gzip.decompress(body)
-        if(i.strip() == 'compress'):
+        if(i == 'compress'):
             body = lzw3.decompress(body)
-        if(i.strip() == 'deflate'):
+        if(i == 'deflate'):
             body = zlib.decompress(body)
-        if(i.strip() == 'br'):
+        if(i == 'br'):
             body = brotli.decompress(body)
-    print(body)
+    #handling according to content-type
+    if(contentExt=="x-www-form-urlencoded"):
+        body = body.decode()
+        queryDict = parse_qs(body, encoding='utf-8')
+        queryWithDate = {utils.logDate(): queryDict}
+        try:
+            with open("log/postData.log", "a") as f:
+                json.dump(queryWithDate, f, indent="\t")
+                #log not exactly in json, but avoids reading overhead
+                f.write("\n")
+            statusCode = "200"
+        except:
+            statusCode = "500"
+        
     responseDict = {
-        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':'200', 'reasonPhrase':utils.givePhrase('200')},
+        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
         'responseHeaders': {
             'Connection': 'close',
             'Date': utils.rfcDate(),            
@@ -157,14 +174,62 @@ def post(requestDict):
     return responseDict
 
 def put(requestDict):
+    config = configparser.ConfigParser()
+    config.read('conf/myserver.conf')
+    with open('media-types/content-type-rev.json','r') as f:
+        typeToExt = json.load(f)
+    requestLine = requestDict['requestLine']
+    contentEncoding = requestDict['requestHeaders'].get('content-encoding', '')
+    contentEncoding = contentEncoding.split(',')
+    contentType = requestDict['requestHeaders'].get('content-type', '')
+    contentExt =  typeToExt.get(contentType, '')
+    requestBody = requestDict['requestBody']
+    #decoding according to content-encoding
+    for i in contentEncoding:
+        i=i.strip()
+        if(i == 'gzip' or i == 'x-gzip'):
+            requestBody = gzip.decompress(requestBody)
+        if(i == 'compress'):
+            requestBody = lzw3.decompress(requestBody)
+        if(i == 'deflate'):
+            requestBody = zlib.decompress(requestBody)
+        if(i == 'br'):
+            requestBody = brotli.decompress(requestBody)
+    uri = requestLine['requestUri']
+    uri = uri.lstrip('/')
+    path = urlparse(uri).path
+    path = path.lstrip('/')
+    path = '/' + path
+    # if path == '/':
+    #     path = '/index.html'  
+    path = config['DEFAULT']['DocumentRoot'] + path
+    parentDirectory = os.path.split(path)[0]
+    filename = os.path.split(path)[1]
+    #create parent directory if does not exist
+    if not os.path.exists(parentDirectory):
+        os.makedirs(parentDirectory)
+    try:
+        if(os.path.exists(path)):
+            statusCode = "200"
+            responseBody = "Resource Modified"
+        else:
+            statusCode = "201"
+            responseBody = "Resource Created"
+        with open(path, "wb") as f:
+            f.write(requestBody)
+    except:
+        statusCode = "500"
+    # extension = pathlib.Path(path).suffix
+    # subtype = extension[1:]  
     responseDict = {
-        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':'200', 'reasonPhrase':utils.givePhrase('200')},
+        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode': statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
         'responseHeaders': {
-            'Connection': 'close',
-            'Date': utils.rfcDate(),            
-        },
-        'responseBody': ""
+            'Connection' : 'close',
+            'Date' : utils.rfcDate(),
+        }, 
+        'responseBody': responseBody.encode()
     }
+    return responseDict
 
 def head(requestDict):
     responseDict = {
@@ -173,7 +238,7 @@ def head(requestDict):
             'Connection': 'close',
             'Date': utils.rfcDate(),            
         },
-        'responseBody': ""
+        'responseBody': "".encode()
     }
 
 def delete(requestDict):
@@ -183,7 +248,7 @@ def delete(requestDict):
             'Connection': 'close',
             'Date': utils.rfcDate(),            
         },
-        'responseBody': ""
+        'responseBody': "".encode()
     }
 
 def other(requestDict):
@@ -194,7 +259,7 @@ def other(requestDict):
             'Connection': 'close',
             'Date': utils.rfcDate(),            
         },
-        'responseBody': ""
+        'responseBody': "".encode()
     }
     return responseDict
   
