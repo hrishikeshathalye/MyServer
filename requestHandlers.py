@@ -10,6 +10,9 @@ import gzip
 import zlib
 import brotli
 import lzw3
+from datetime import datetime
+from time import mktime
+import time
 #pass parsed request to these functions
 #expect them to return the response fields as a dictionary
 #call utils.responseBuilder in main
@@ -113,13 +116,15 @@ def get(requestDict):
         statusCode = '200'      
     with open(path,'rb') as f:
         f_bytes = f.read()
+    dm = datetime.fromtimestamp(mktime(time.gmtime(os.path.getmtime(path))))    
     extension = pathlib.Path(path).suffix
     subtype = extension[1:]  
     responseDict = {
         'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode': statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
         'responseHeaders': {
             'Connection' : 'close',
-            'Date' : utils.rfcDate(),
+            'Date' : utils.rfcDate(datetime.utcnow()),
+            'Last-Modified':utils.rfcDate(dm),
             'Content-Type' : typedict.get(subtype,'application/example')
         }, 
         'responseBody': f_bytes
@@ -150,7 +155,8 @@ def post(requestDict):
         'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':'200', 'reasonPhrase':utils.givePhrase('200')},
         'responseHeaders': {
             'Connection': 'close',
-            'Date': utils.rfcDate(),            
+            'Date': utils.rfcDate(datetime.utcnow()),
+                         
         },
         'responseBody': "Data Logged".encode()
     }
@@ -161,7 +167,7 @@ def put(requestDict):
         'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':'200', 'reasonPhrase':utils.givePhrase('200')},
         'responseHeaders': {
             'Connection': 'close',
-            'Date': utils.rfcDate(),            
+            'Date': utils.rfcDate(datetime.utcnow()),            
         },
         'responseBody': ""
     }
@@ -171,7 +177,7 @@ def head(requestDict):
         'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':'200', 'reasonPhrase':utils.givePhrase('200')},
         'responseHeaders': {
             'Connection': 'close',
-            'Date': utils.rfcDate(),            
+            'Date': utils.rfcDate(datetime.utcnow()),            
         },
         'responseBody': ""
     }
@@ -181,7 +187,7 @@ def delete(requestDict):
         'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':'200', 'reasonPhrase':utils.givePhrase('200')},
         'responseHeaders': {
             'Connection': 'close',
-            'Date': utils.rfcDate(),            
+            'Date': utils.rfcDate(datetime.utcnow()),            
         },
         'responseBody': ""
     }
@@ -192,7 +198,7 @@ def other(requestDict):
         'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
         'responseHeaders': {
             'Connection': 'close',
-            'Date': utils.rfcDate(),            
+            'Date': utils.rfcDate(datetime.utcnow()),            
         },
         'responseBody': ""
     }
