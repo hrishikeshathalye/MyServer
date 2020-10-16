@@ -155,6 +155,7 @@ def post(requestDict):
         if(i == 'br'):
             body = brotli.decompress(body)
     #handling according to content-type
+    statusCode = "200"
     if(contentExt=="x-www-form-urlencoded"):
         body = body.decode()
         queryDict = parse_qs(body, encoding='utf-8')
@@ -167,7 +168,6 @@ def post(requestDict):
             statusCode = "200"
         except:
             statusCode = "500"
-        
     responseDict = {
         'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
         'responseHeaders': {
