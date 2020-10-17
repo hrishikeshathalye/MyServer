@@ -13,6 +13,7 @@ import lzw3
 from datetime import datetime
 from time import mktime
 import time
+import shutil
 #pass parsed request to these functions
 #expect them to return the response fields as a dictionary
 #call utils.responseBuilder in main
@@ -248,14 +249,40 @@ def head(requestDict):
     }
 
 def delete(requestDict):
+    config = configparser.ConfigParser()
+    config.read('conf/myserver.conf')
+    requestLine = requestDict['requestLine']
+    # contentEncoding = requestDict['requestHeaders'].get('content-encoding', '')
+    # contentEncoding = contentEncoding.split(',')
+    # contentType = requestDict['requestHeaders'].get('content-type', '')
+    # contentExt =  typeToExt.get(contentType, '')
+    requestBody = requestDict['requestBody']
+    uri = requestLine['requestUri']
+    uri = uri.lstrip('/')
+    path = urlparse(uri).path
+    path = path.lstrip('/')
+    path = '/' + path
+    path = config['DEFAULT']['DocumentRoot'] + path
+    if os.path.exists(path):
+        try:
+            os.remove(path)
+        except IsADirectoryError:
+            shutil.rmtree(path, ignore_errors=True)
+        finally:
+            statusCode = '200'
+            responseBody = "Resource Deleted"
+    else:
+        statusCode = '404'
+        responseBody = ''
     responseDict = {
-        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':'200', 'reasonPhrase':utils.givePhrase('200')},
+        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
         'responseHeaders': {
             'Connection': 'close',
             'Date': utils.rfcDate(datetime.utcnow()),            
         },
-        'responseBody': "".encode()
+        'responseBody': responseBody.encode()
     }
+    return responseDict
 
 def other(requestDict):
     statusCode = '501'
