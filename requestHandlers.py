@@ -21,8 +21,8 @@ import shutil
 """
 general-header = 
     Cache-Control            ; Section 14.9
-    Connection               ; Section 14.10
-    Date                     ; Section 14.18
+    (Done)Connection               ; Section 14.10
+    (Done)Date                     ; Section 14.18
     Pragma                   ; Section 14.32
     Trailer                  ; Section 14.40
     Transfer-Encoding        ; Section 14.41
@@ -68,7 +68,7 @@ general-header =
 """
     entity-header  = 
     Allow                    ; Section 14.7
-    Content-Encoding         ; Section 14.11
+    (Done)Content-Encoding         ; Section 14.11
     Content-Language         ; Section 14.12
     Content-Length           ; Section 14.13
     Content-Location         ; Section 14.14

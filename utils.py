@@ -133,4 +133,52 @@ def logAccess(loggingInfo):
 		log+=str(loggingInfo[i])+" "
 	return log
 
+def prioritizeEncoding(acceptVal):
+	"""
+	takes in accept header value(str) and returns 
+	which encoding to use according to q priority
+	"""
+	if(acceptVal == ""):
+		return "identity"
+	allEncodings = [
+		"br",
+		"compress",
+		"deflate",
+		"gzip",
+		"exi",
+		"pack200-gzip",
+		"x-compress",
+		"x-gzip",
+		"zstd"
+	]
+	priority={
+		"identity":1
+	}
+	tmp = acceptVal.split(',')
+	starPriority = 0
+	seenEncodings = []
+	for i in tmp:
+		i = i.strip()
+		pair = i.split(';')
+		encoding = pair[0].strip()
+		seenEncodings.append(encoding)
+		q = float(pair[1].split("=")[1].strip())
+		if(q==0):
+			if(encoding=="identity"):
+				priority.pop(encoding, None)
+			continue
+		if(encoding!="*"):
+			priority[encoding] = q
+		else:
+			starPriority = q
+	if(starPriority):
+		for i in allEncodings:
+			if(i not in seenEncodings):
+				priority[i] = starPriority
+	try:
+		return max(priority, key=priority.get)
+	except ValueError:
+		return None
+
+
 # def logError():
