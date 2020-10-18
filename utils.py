@@ -1,9 +1,11 @@
 from datetime import datetime
 import time
 import math
+import platform
 def requestParser(requestStr):
 		"""
 		accept request string, return dictionary
+		returning None indicates parsing error
 		"""
 		requestStr = requestStr.strip()
 		#According to the RFC, the body starts after a \r\n\r\n sequence
@@ -21,28 +23,32 @@ def requestParser(requestStr):
 		requestLine = dict()
 		requestLine['method'] = requestFields[0]
 		#Request-URI = "*" | absoluteURI | abs_path | authority
-		requestLine['requestUri'] = requestFields[1]
-		requestLine['httpVersion'] = requestFields[2]
+		try:
+			requestLine['requestUri'] = requestFields[1]
+			requestLine['httpVersion'] = requestFields[2]
 
-		headersDict = dict()
-		for i in requestHeaders:
-			keyValSplit = i.split(':', 1)
-			key = keyValSplit[0]
-			val = keyValSplit[1]
-			#lower used since according to RFC, header keys are case insensitive
-			#Some values maybe case sensitive or otherwise, depending on key, THAT CASE NOT HANDLED
-			headersDict[key.strip().lower()] = val.strip()
+			headersDict = dict()
+			for i in requestHeaders:
+				keyValSplit = i.split(':', 1)
+				key = keyValSplit[0]
+				val = keyValSplit[1]
+				#lower used since according to RFC, header keys are case insensitive
+				#Some values maybe case sensitive or otherwise, depending on key, THAT CASE NOT HANDLED
+				headersDict[key.strip().lower()] = val.strip()
+			
+			requestHeaders = headersDict
+			#At this point requestLine(dictionary), requestHeaders(dictionary) and requestBody(string) constitute the entire message
+			#uncomment line below if debugging to compare with original requestStr
+			#print(requestStr)
+			parsedRequest = {
+				'requestLine': requestLine, 
+				'requestHeaders': requestHeaders, 
+				'requestBody': requestBody
+			}
+			return parsedRequest
 		
-		requestHeaders = headersDict
-		#At this point requestLine(dictionary), requestHeaders(dictionary) and requestBody(string) constitute the entire message
-		#uncomment line below if debugging to compare with original requestStr
-		#print(requestStr)
-		parsedRequest = {
-			'requestLine': requestLine, 
-			'requestHeaders': requestHeaders, 
-			'requestBody': requestBody
-		}
-		return parsedRequest
+		except IndexError:
+			return None
 
 def responseBuilder(responseDict):
     """
@@ -180,5 +186,11 @@ def prioritizeEncoding(acceptVal):
 	except ValueError:
 		return None
 
+def getServerInfo():
+	serverName = "MyServer"
+	serverVersion = "1.0"
+	opSys = platform.platform()
+	info = f'{serverName}/{serverVersion} ({opSys})'
+	return info
 
 # def logError():

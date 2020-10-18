@@ -97,7 +97,8 @@ class Server:
 					return
 			loggingInfo['time'] =  "["+utils.logDate()+"]"
 			parsedRequest = utils.requestParser(fullRequest)
-			if(('content-length' in parsedRequest['requestHeaders']) or ('transfer-encoding' in parsedRequest['requestHeaders'])):
+			#('transfer-encoding' in parsedRequest['requestHeaders']) was below
+			if(parsedRequest and ('content-length' in parsedRequest['requestHeaders'])):
 				contentLength = int(parsedRequest['requestHeaders']['content-length'])
 				sizeRead=0 #bytes read till now
 				#you indicated a non zero content length but did not give further data so wait to get data
@@ -116,7 +117,7 @@ class Server:
 				#handle padding with blank space if content-length greater than body
 				#handle shortening of body in case of entire body at once (handled)
 				parsedRequest['requestBody'] = parsedRequest['requestBody'][0:contentLength]
-			else:
+			elif(parsedRequest):
 				parsedRequest['requestBody'] = ''.encode()
 
 			switch={
@@ -126,7 +127,10 @@ class Server:
 				'HEAD': requestHandlers.head,
 				'DELETE': requestHandlers.delete,
 			}
-			handler = switch.get(parsedRequest['requestLine']['method'], requestHandlers.other)
+			if(parsedRequest == None):
+				handler = requestHandlers.badRequest
+			else:
+				handler = switch.get(parsedRequest['requestLine']['method'], requestHandlers.other)
 			responseDict = handler(parsedRequest)
 			responseString = utils.responseBuilder(responseDict)
 			self.tcpSocket.send(clientConnection, responseString)
@@ -134,9 +138,9 @@ class Server:
 			loggingInfo['requestLine'] = '"'+(fullRequest.split('\r\n'.encode(), 1)[0]).decode('utf-8')+'"'
 			if('responseBody' in responseDict):
 				loggingInfo['dataSize'] = len(responseDict['responseBody'])
-			if('user-agent' in parsedRequest["requestHeaders"]):
+			if(parsedRequest and 'user-agent' in parsedRequest["requestHeaders"]):
 				loggingInfo['userAgent'] = f'"{parsedRequest["requestHeaders"]["user-agent"]}"'
-			if('referer' in parsedRequest["requestHeaders"]):
+			if(parsedRequest and 'referer' in parsedRequest["requestHeaders"]):
 				loggingInfo['referer'] = f'"{parsedRequest["requestHeaders"]["referer"]}"'
 			log = utils.logAccess(loggingInfo)
 			if(('Connection' in responseDict['responseHeaders']) and responseDict['responseHeaders']['Connection'].lower() == 'close'):

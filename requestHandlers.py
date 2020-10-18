@@ -21,11 +21,11 @@ import shutil
 """
 general-header = 
     Cache-Control            ; Section 14.9
-    (Done)Connection               ; Section 14.10
-    (Done)Date                     ; Section 14.18
+    (Done) Connection               ; Section 14.10
+    (Done) Date                     ; Section 14.18
     Pragma                   ; Section 14.32
     Trailer                  ; Section 14.40
-    Transfer-Encoding        ; Section 14.41
+    (Not to be Done) Transfer-Encoding        ; Section 14.41
     Upgrade                  ; Section 14.42
     Via                      ; Section 14.45
     *Warning                  ; Section 14.46
@@ -293,6 +293,30 @@ def other(requestDict):
             'Date': utils.rfcDate(datetime.utcnow()),            
         },
         'responseBody': "".encode()
+    }
+    return responseDict
+
+def badRequest(requestDict):
+    config = configparser.ConfigParser()
+    config.read('conf/myserver.conf')
+    with open('media-types/content-type.json','r') as jf:
+        typedict = json.load(jf) 
+    statusCode = '400'
+    path = config['DEFAULT']['error-pages'] + '/400.html'
+    extension = pathlib.Path(path).suffix
+    subtype = extension[1:]  
+    with open(path,'rb') as f:
+        f_bytes = f.read()
+    responseDict = {
+        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
+        'responseHeaders': {
+            'Connection': 'close',
+            'Date': utils.rfcDate(datetime.utcnow()),
+            'Content-Type' : typedict.get(subtype,'application/example'),
+            'Content-Length': str(len(f_bytes)),
+            'Server': utils.getServerInfo()
+        },
+        'responseBody': f_bytes
     }
     return responseDict
   
