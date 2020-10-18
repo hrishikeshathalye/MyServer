@@ -1,6 +1,7 @@
 import socket
 import threading
 import os
+import sys
 import queue
 import utils
 import requestHandlers
@@ -11,7 +12,6 @@ class tcpSocket:
 		creates tcp socket, binds to host and port, makes it listen
 		"""
 		self.host = host
-		self.port = port
 		self.socketVar = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		#SO_REUSEADDR allows reuse of sockets set in TIME_WAIT state
 		#it also does not block all ports hence to be used if using HOST as ''
@@ -19,6 +19,7 @@ class tcpSocket:
 		#timeout on accept function
 		self.socketVar.settimeout(0)
 		self.socketVar.bind((host, port))
+		self.port = self.socketVar.getsockname()[1]
 		self.socketVar.listen(5)
 
 	def accept(self):
@@ -192,7 +193,10 @@ class Server:
 		
 if __name__ == "__main__":
 	#An instance of a multithreaded server
-	server = Server('', 90)
+	port = 0
+	if(len(sys.argv)>1):
+		port = int(sys.argv[1])
+	server = Server('', port)
 	#The action of serving is a seperate thread since main needs to also accept input
 	#and the normal behavior of serve is blocking in nature
 	serverThread = threading.Thread(target=server.serve)
