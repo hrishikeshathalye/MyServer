@@ -55,6 +55,8 @@ class Server:
 		self.loggerThread.start()
 
 	def logger(self):
+		if not os.path.exists("log"):
+			os.makedirs("log")
 		f = open("log/access.log", 'a')
 		while(True):
 			try:
