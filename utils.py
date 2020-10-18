@@ -135,7 +135,7 @@ def logAccess(loggingInfo):
 
 def prioritizeEncoding(acceptVal):
 	"""
-	takes in accept header value(str) and returns 
+	takes in accept-encoding header value(str) and returns 
 	which encoding to use according to q priority
 	"""
 	if(acceptVal == ""):
