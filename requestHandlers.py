@@ -94,9 +94,11 @@ general-header =
 """
 
 
-def get(requestDict):
+def get(requestDict, *args):
     # relUrl = requestDict['requestLine']['requestUri'].split('/', 1)
     # relUrl = relUrl[1]
+    if(not utils.compatCheck(requestDict['requestLine']['httpVersion'])):
+        return badRequest(requestDict, '505')
     config = configparser.ConfigParser()
     config.read('conf/myserver.conf')
     requestLine = requestDict['requestLine']
@@ -132,11 +134,13 @@ def get(requestDict):
     }
     return responseDict
 
-def post(requestDict):
+def post(requestDict, *args):
     """
     The meaning of the Content-Location header in PUT or POST requests is
     undefined; servers are free to ignore it in those cases. (ignored)
     """
+    if(not utils.compatCheck(requestDict['requestLine']['httpVersion'])):
+        return badRequest(requestDict, '505')
     statusCode = None
     responseBody = ''
     with open('media-types/content-type-rev.json','r') as f:
@@ -177,20 +181,22 @@ def post(requestDict):
                 responseBody = "Data Logged"
             except:
                 statusCode = "500"
-    responseDict = {
-        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
-        'responseHeaders': {
-            'Connection': 'close',
-            'Date': utils.rfcDate(datetime.utcnow()),            
-        },
-        'responseBody' : responseBody.encode()
-    }
     if(statusCode == "400"):
-        return badRequest(requestDict)
+        responseDict = badRequest(requestDict, statusCode)
     else:
-        return responseDict
+        responseDict = {
+            'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
+            'responseHeaders': {
+                'Connection': 'close',
+                'Date': utils.rfcDate(datetime.utcnow()),            
+            },
+            'responseBody' : responseBody.encode()
+        }
+    return responseDict
 
-def put(requestDict):
+def put(requestDict, *args):
+    if(not utils.compatCheck(requestDict['requestLine']['httpVersion'])):
+        return badRequest(requestDict, '505')
     statusCode = None
     responseBody = ''
     config = configparser.ConfigParser()
@@ -245,20 +251,22 @@ def put(requestDict):
             statusCode = "500"
     # extension = pathlib.Path(path).suffix
     # subtype = extension[1:]  
-    responseDict = {
-        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode': statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
-        'responseHeaders': {
-            'Connection': 'close',
-            'Date': utils.rfcDate(datetime.utcnow())
-        },
-        'responseBody' : responseBody.encode()
-    }
     if(statusCode == "400"):
-        return badRequest(requestDict)
+        responseDict = badRequest(requestDict, statusCode)
     else:
-        return responseDict
+        responseDict = {
+            'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode': statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
+            'responseHeaders': {
+                'Connection': 'close',
+                'Date': utils.rfcDate(datetime.utcnow())
+            },
+            'responseBody' : responseBody.encode()
+        }
+    return responseDict    
 
-def head(requestDict):
+def head(requestDict, *args):
+    if(not utils.compatCheck(requestDict['requestLine']['httpVersion'])):
+        return badRequest(requestDict, '505')
     responseDict = {
         'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':'200', 'reasonPhrase':utils.givePhrase('200')},
         'responseHeaders': {
@@ -268,7 +276,9 @@ def head(requestDict):
         'responseBody': "".encode()
     }
 
-def delete(requestDict):
+def delete(requestDict, *args):
+    if(not utils.compatCheck(requestDict['requestLine']['httpVersion'])):
+        return badRequest(requestDict, '505')
     config = configparser.ConfigParser()
     config.read('conf/myserver.conf')
     requestLine = requestDict['requestLine']
@@ -291,42 +301,33 @@ def delete(requestDict):
         finally:
             statusCode = '200'
             responseBody = "Resource Deleted"
+            responseDict = {
+                'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
+                'responseHeaders': {
+                    'Connection': 'close',
+                    'Date': utils.rfcDate(datetime.utcnow()),            
+                },
+                'responseBody': responseBody.encode()
+            }
     else:
-        statusCode = '404'
-        responseBody = ''
-    responseDict = {
-        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
-        'responseHeaders': {
-            'Connection': 'close',
-            'Date': utils.rfcDate(datetime.utcnow()),            
-        },
-        'responseBody': responseBody.encode()
-    }
+        responseDict = badRequest(requestDict, '404')
+
     return responseDict
 
-def other(requestDict):
-    statusCode = '501'
-    responseDict = {
-        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
-        'responseHeaders': {
-            'Connection': 'close',
-            'Date': utils.rfcDate(datetime.utcnow()),            
-        },
-        'responseBody': "".encode()
-    }
-    return responseDict
-
-def badRequest(requestDict):
+#For handling all error status codes
+def badRequest(requestDict, *args):
+    statusCode = args[0]
     config = configparser.ConfigParser()
     config.read('conf/myserver.conf')
     with open('media-types/content-type.json','r') as jf:
         typedict = json.load(jf) 
-    statusCode = '400'
-    path = config['DEFAULT']['error-pages'] + '/400.html'
+    path = config['DEFAULT']['error-pages'] + f'/{statusCode}.html'
     extension = pathlib.Path(path).suffix
-    subtype = extension[1:]  
-    with open(path,'rb') as f:
-        f_bytes = f.read()
+    subtype = extension[1:]
+    f_bytes = b''
+    if(os.path.exists(path)):
+        with open(path,'rb') as f:
+            f_bytes = f.read()
     responseDict = {
         'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
         'responseHeaders': {

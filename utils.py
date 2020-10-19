@@ -193,4 +193,8 @@ def getServerInfo():
 	info = f'{serverName}/{serverVersion} ({opSys})'
 	return info
 
+def compatCheck(httpVersion):
+	protocol = httpVersion.split('/')[0].strip()
+	version = httpVersion.split('/')[1].strip()
+	return (math.floor(float(version)) == 1 ) and (protocol=='HTTP')
 # def logError():

@@ -133,8 +133,9 @@ class Server:
 			if(parsedRequest == None):
 				handler = requestHandlers.badRequest
 			else:
-				handler = switch.get(parsedRequest['requestLine']['method'], requestHandlers.other)
-			responseDict = handler(parsedRequest)
+				handler = switch.get(parsedRequest['requestLine']['method'], requestHandlers.badRequest)
+			#only bad request handler inspects the second argument
+			responseDict = handler(parsedRequest, '501')
 			responseString = utils.responseBuilder(responseDict)
 			self.tcpSocket.send(clientConnection, responseString)
 			loggingInfo['statusCode'] = responseDict['statusLine']['statusCode']
