@@ -17,7 +17,7 @@ class tcpSocket:
 		#it also does not block all ports hence to be used if using HOST as ''
 		self.socketVar.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		#timeout on accept function
-		self.socketVar.settimeout(0)
+		self.socketVar.setblocking(False)
 		self.socketVar.bind((host, port))
 		self.port = self.socketVar.getsockname()[1]
 		self.socketVar.listen(5)
@@ -166,7 +166,8 @@ class Server:
 			except BlockingIOError:
 				continue
 			else:
-				workerThread = threading.Thread(target=self.worker, args=(clientConnection,))
+				#had to declare daemon coupled with timeout in join due to a race condition in socket recv
+				workerThread = threading.Thread(target=self.worker, args=(clientConnection,), daemon=True)
 				self.threads.append(workerThread)
 				workerThread.start()
 	
@@ -180,9 +181,10 @@ class Server:
 		print("Waiting for all pending requests to complete...")
 		#serve pending requests
 		for thread in self.threads:
-			thread.join()
+			thread.join(10.0)
 		print("All pending requests served.")
 		self.loggerStatus=0
+		print("Waiting for logger to finish logging...")
 		self.loggerThread.join()
 		print("Server has stopped.")
 

@@ -181,6 +181,19 @@ def post(requestDict, *args):
                 responseBody = "Data Logged"
             except:
                 statusCode = "500"
+        if(contentExt=="json"):
+            body = body.decode()
+            body = json.loads(body)
+            queryWithDate = {utils.logDate(): body}
+            try:
+                with open("log/postData.log", "a") as f:
+                    json.dump(queryWithDate, f, indent="\t")
+                    #log not exactly in json, but avoids reading overhead
+                    f.write("\n")
+                statusCode = "200"
+                responseBody = "Data Logged"
+            except:
+                statusCode = "500"
     if(statusCode == "400"):
         responseDict = badRequest(requestDict, statusCode)
     else:

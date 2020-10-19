@@ -1,2 +1,15 @@
 brotli
 lzw3
+datetime
+time
+math
+platform
+urllib
+configparser
+os
+hashlib
+pathlib
+json
+gzip
+zlib
+shutil
