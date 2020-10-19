@@ -58,18 +58,15 @@ class Server:
 		if not os.path.exists("log"):
 			os.makedirs("log")
 		f = open("log/access.log", 'a')
-		while(True):
+		while(self.loggerStatus):
 			try:
 				log = self.logQueue.get(block=False)
 			except queue.Empty:
-				if(self.loggerStatus):
-					continue
-				else:
-					break
+				continue
 			else:
 				f.write(log+"\n")
-				f.flush()
-				os.fsync(f.fileno())
+				# f.flush()
+				# os.fsync(f.fileno())
 		f.close()
 
 	def worker(self, clientConnection):
@@ -180,8 +177,13 @@ class Server:
 		self.status = 0
 		print("Waiting for all pending requests to complete...")
 		#serve pending requests
+		#timeout of 10s for the first hanging thread found
+		#all others should have completed by then so 0 timeout for them
+		initialWait = 10.0
 		for thread in self.threads:
-			thread.join(10.0)
+			thread.join(initialWait)
+			if(thread.is_alive()):
+				initialWait=0
 		print("All pending requests served.")
 		self.loggerStatus=0
 		print("Waiting for logger to finish logging...")
