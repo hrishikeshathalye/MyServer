@@ -288,6 +288,7 @@ def head(requestDict, *args):
         },
         'responseBody': "".encode()
     }
+    return responseDict
 
 def delete(requestDict, *args):
     if(not utils.compatCheck(requestDict['requestLine']['httpVersion'])):
