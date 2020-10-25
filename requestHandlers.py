@@ -81,7 +81,6 @@ general-header =
 """
 #Following are the supported media types		
 """
-
     application
     example
     image
@@ -90,7 +89,6 @@ general-header =
     video
     font 
     model
-
 """
 
 
@@ -186,6 +184,17 @@ def post(requestDict, *args):
             body = json.loads(body)
             queryWithDate = {utils.logDate(): body}
             try:
+                with open("log/postData.log", "a") as f:
+                    json.dump(queryWithDate, f, indent="\t")
+                    #log not exactly in json, but avoids reading overhead
+                    f.write("\n")
+                statusCode = "200"
+                responseBody = "Data Logged"
+            except:
+                statusCode = "500"
+        else:
+            try:
+                queryWithDate = {utils.logDate(): body}
                 with open("log/postData.log", "a") as f:
                     json.dump(queryWithDate, f, indent="\t")
                     #log not exactly in json, but avoids reading overhead

@@ -4,6 +4,7 @@ import os
 import sys
 import queue
 import utils
+import configparser
 import requestHandlers
 #class to encapsulate most socket functions
 class tcpSocket:
@@ -20,7 +21,7 @@ class tcpSocket:
 		self.socketVar.setblocking(False)
 		self.socketVar.bind((host, port))
 		self.port = self.socketVar.getsockname()[1]
-		self.socketVar.listen(5)
+		self.socketVar.listen(100)
 
 	def accept(self):
 		clientConnection, clientAddress = self.socketVar.accept()
@@ -44,6 +45,10 @@ class tcpSocket:
 	
 class Server:	
 	def __init__(self, host, port):
+		config = configparser.ConfigParser()
+		config.read('conf/myserver.conf')
+		self.maxConn = int(config['DEFAULT']['MaxSimultaneousConnections'])
+		self.activeConn = 0
 		#A variable which contains all thread objects
 		self.threads = []
 		#variable to check if server is serving 1 - running, 0 - stopped
@@ -94,6 +99,7 @@ class Server:
 					fullRequest += request
 				except socket.timeout:
 					self.tcpSocket.close(clientConnection)
+					self.activeConn-=1
 					return
 			loggingInfo['time'] =  "["+utils.logDate()+"]"
 			parsedRequest = utils.requestParser(fullRequest)
@@ -110,6 +116,7 @@ class Server:
 						tmpData = self.tcpSocket.receive(clientConnection, contentLength-sizeRead)
 					except socket.timeout:
 						self.tcpSocket.close(clientConnection)
+						self.activeConn-=1
 						return
 					sizeRead+=len(tmpData)
 					fullRequest += tmpData
@@ -147,6 +154,7 @@ class Server:
 			if(('Connection' in responseDict['responseHeaders']) and responseDict['responseHeaders']['Connection'].lower() == 'close'):
 				# clientConnection.shutdown(socket.SHUT_RDWR)
 				self.tcpSocket.close(clientConnection)
+				self.activeConn-=1
 				self.logQueue.put(log)
 				return
 			else:
@@ -158,8 +166,11 @@ class Server:
 		"""
 		print(f'Serving HTTP on port {self.tcpSocket.port} (stop/restart)...')
 		while self.status:
+			if(self.activeConn == self.maxConn):
+				continue
 			try:
 				clientConnection = self.tcpSocket.accept()
+				self.activeConn+=1
 			except BlockingIOError:
 				continue
 			else:
