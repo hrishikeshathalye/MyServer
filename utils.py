@@ -2,6 +2,7 @@ from datetime import datetime
 import time
 import math
 import platform
+from time import mktime
 def requestParser(requestStr):
 		"""
 		accept request string, return dictionary
@@ -198,3 +199,12 @@ def compatCheck(httpVersion):
 	version = httpVersion.split('/')[1].strip()
 	return (math.floor(float(version)) == 1 ) and (protocol=='HTTP')
 # def logError():
+
+def compareDate(ifmod, lastmod):
+	ifmod_sec = mktime(time.strptime(ifmod,'%a, %d %b %Y %H:%M:%S %Z'))
+	lastmod_sec = mktime(time.strptime(lastmod,'%a, %d %b %Y %H:%M:%S %Z'))
+
+	if ifmod_sec < lastmod_sec:
+		return '200'
+	else:
+		return '304'	

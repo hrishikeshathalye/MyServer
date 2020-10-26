@@ -100,6 +100,7 @@ def get(requestDict, *args):
     config = configparser.ConfigParser()
     config.read('conf/myserver.conf')
     requestLine = requestDict['requestLine']
+    requestHeaders = requestDict['requestHeaders']
     uri = requestLine['requestUri'] 
     uri = uri.lstrip('/')
     path = urlparse(uri).path
@@ -110,14 +111,18 @@ def get(requestDict, *args):
     if path == '/':
         path = '/index.html'  
     path = config['DEFAULT']['DocumentRoot'] + path
+    
     if not os.path.isfile(path):
         path = config['DEFAULT']['error-pages'] + '/404.html'
         statusCode = '404'
+        dm = datetime.fromtimestamp(mktime(time.gmtime(os.path.getmtime(path))))
     else:
-        statusCode = '200'      
+        dm = datetime.fromtimestamp(mktime(time.gmtime(os.path.getmtime(path))))
+        ifmod = requestHeaders.get('if-modified-since',utils.rfcDate(datetime.fromtimestamp(0)))         
+        statusCode = utils.compareDate(ifmod,utils.rfcDate(dm))     
     with open(path,'rb') as f:
         f_bytes = f.read()
-    dm = datetime.fromtimestamp(mktime(time.gmtime(os.path.getmtime(path))))    
+        
     extension = pathlib.Path(path).suffix
     subtype = extension[1:]  
     responseDict = {
@@ -126,10 +131,15 @@ def get(requestDict, *args):
             'Connection' : 'close',
             'Date' : utils.rfcDate(datetime.utcnow()),
             'Last-Modified':utils.rfcDate(dm),
-            'Content-Type' : typedict.get(subtype,'application/example')
+            
+            
+            "Set-Cookie": "yummy_cookie=choco"
         }, 
-        'responseBody': f_bytes
+        'responseBody' : ''.encode()
     }
+    if statusCode == '200' or statusCode =='404':
+        responseDict.__setitem__('responseBody', f_bytes)
+        responseDict['responseHeaders'].__setitem__('Content-Type' , typedict.get(subtype,'application/example'))
     return responseDict
 
 def post(requestDict, *args):
