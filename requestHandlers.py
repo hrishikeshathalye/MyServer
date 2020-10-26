@@ -119,7 +119,9 @@ def get(requestDict, *args):
     else:
         dm = datetime.fromtimestamp(mktime(time.gmtime(os.path.getmtime(path))))
         ifmod = requestHeaders.get('if-modified-since',utils.rfcDate(datetime.fromtimestamp(0)))         
-        statusCode = utils.compareDate(ifmod,utils.rfcDate(dm))     
+        ifunmod = requestHeaders.get('if-unmodified-since',utils.rfcDate(datetime.utcnow()))
+        statusCode = utils.compareDate(ifmod,utils.rfcDate(dm))
+        statusCode = utils.compareDate2(ifunmod, utils.rfcDate(dm),statusCode)     
     with open(path,'rb') as f:
         f_bytes = f.read()
         

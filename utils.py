@@ -207,4 +207,13 @@ def compareDate(ifmod, lastmod):
 	if ifmod_sec < lastmod_sec:
 		return '200'
 	else:
-		return '304'	
+		return '304'
+
+def compareDate2(ifunmod, lastmod,statusCode):
+	ifmod_sec = mktime(time.strptime(ifunmod,'%a, %d %b %Y %H:%M:%S %Z'))
+	lastmod_sec = mktime(time.strptime(lastmod,'%a, %d %b %Y %H:%M:%S %Z'))
+
+	if ifmod_sec > lastmod_sec:
+		return statusCode
+	else:
+		return '412'
