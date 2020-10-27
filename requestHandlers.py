@@ -134,7 +134,6 @@ def get(requestDict, *args):
             'Date' : utils.rfcDate(datetime.utcnow()),
             'Last-Modified':utils.rfcDate(dm),
             
-            
             "Set-Cookie": "yummy_cookie=choco"
         }, 
         'responseBody' : ''.encode()
@@ -142,6 +141,7 @@ def get(requestDict, *args):
     if statusCode == '200' or statusCode =='404':
         responseDict.__setitem__('responseBody', f_bytes)
         responseDict['responseHeaders'].__setitem__('Content-Type' , typedict.get(subtype,'application/example'))
+        responseDict['responseHeaders'].__setitem__('ETag','"{}"'.format(hashlib.md5(responseDict['responseHeaders']['Last-Modified'].encode()).hexdigest()))
     return responseDict
 
 def post(requestDict, *args):
