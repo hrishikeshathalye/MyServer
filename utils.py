@@ -162,6 +162,7 @@ def prioritizeEncoding(acceptVal):
 	tmp = acceptVal.split(',')
 	starPriority = 0
 	seenEncodings = []
+	pflag = 0
 	for i in tmp:
 		i = i.strip()
 		pair = i.split(';')
@@ -172,7 +173,7 @@ def prioritizeEncoding(acceptVal):
 		q = float(pair[1].split("=")[1].strip())
 		if(q == 0.0):
 			if(encoding=="identity"):
-				priority.pop(encoding, None)
+				pflag = 1
 			continue
 		if(encoding!="*"):
 			priority[encoding] = q
@@ -184,6 +185,8 @@ def prioritizeEncoding(acceptVal):
 				priority[i] = starPriority
 	try:
 		priority['identity'] = 1
+		if pflag == 1:
+			priority.pop(encoding, None)
 		return max(priority, key=priority.get)
 
 	except ValueError:

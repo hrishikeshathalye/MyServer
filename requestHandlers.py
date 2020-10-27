@@ -103,6 +103,8 @@ def get(requestDict, *args):
     requestHeaders = requestDict['requestHeaders']
     acceptencoding = requestHeaders.get('accept-encoding',"")
     contentencoding = utils.prioritizeEncoding(acceptencoding)
+    if not contentencoding:
+        return badRequest(requestDict, '406')
     uri = requestLine['requestUri'] 
     uri = uri.lstrip('/')
     path = urlparse(uri).path
@@ -115,15 +117,13 @@ def get(requestDict, *args):
     path = config['DEFAULT']['DocumentRoot'] + path
     
     if not os.path.isfile(path):
-        path = config['DEFAULT']['error-pages'] + '/404.html'
-        statusCode = '404'
-        dm = datetime.fromtimestamp(mktime(time.gmtime(os.path.getmtime(path))))
-    else:
-        dm = datetime.fromtimestamp(mktime(time.gmtime(os.path.getmtime(path))))
-        ifmod = requestHeaders.get('if-modified-since',utils.rfcDate(datetime.fromtimestamp(0)))         
-        ifunmod = requestHeaders.get('if-unmodified-since',utils.rfcDate(datetime.utcnow()))
-        statusCode = utils.compareDate(ifmod,utils.rfcDate(dm),utils.rfcDate(datetime.utcnow()))
-        statusCode = utils.compareDate2(ifunmod, utils.rfcDate(dm),statusCode)     
+        return badRequest(requestDict, '404')
+
+    dm = datetime.fromtimestamp(mktime(time.gmtime(os.path.getmtime(path))))
+    ifmod = requestHeaders.get('if-modified-since',utils.rfcDate(datetime.fromtimestamp(0)))         
+    ifunmod = requestHeaders.get('if-unmodified-since',utils.rfcDate(datetime.utcnow()))
+    statusCode = utils.compareDate(ifmod,utils.rfcDate(dm),utils.rfcDate(datetime.utcnow()))
+    statusCode = utils.compareDate2(ifunmod, utils.rfcDate(dm),statusCode)     
     with open(path,'rb') as f:
         f_bytes = f.read()
         
@@ -140,7 +140,7 @@ def get(requestDict, *args):
         }, 
         'responseBody' : ''.encode()
     }
-    if statusCode == '200' or statusCode =='404':
+    if statusCode == '200':
         body = f_bytes
         if(contentencoding == 'gzip' or contentencoding == 'x-gzip'):
             body = gzip.compress(body)
@@ -384,10 +384,12 @@ def badRequest(requestDict, *args):
             'Connection': 'close',
             'Date': utils.rfcDate(datetime.utcnow()),
             'Content-Type' : typedict.get(subtype,'application/example'),
-            'Content-Length': str(len(f_bytes)),
+            
             'Server': utils.getServerInfo()
         },
         'responseBody': f_bytes
     }
+    if f_bytes is not b'':
+        responseDict['responseHeaders'].__setitem__('Content-Length',str(len(f_bytes)))
     return responseDict
   
