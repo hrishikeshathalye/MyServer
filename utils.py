@@ -158,9 +158,7 @@ def prioritizeEncoding(acceptVal):
 		"x-gzip",
 		"zstd"
 	]
-	priority={
-		"identity":1
-	}
+	priority=dict()
 	tmp = acceptVal.split(',')
 	starPriority = 0
 	seenEncodings = []
@@ -169,8 +167,10 @@ def prioritizeEncoding(acceptVal):
 		pair = i.split(';')
 		encoding = pair[0].strip()
 		seenEncodings.append(encoding)
+		if len(pair) == 1:
+			pair.append("q=1.0")
 		q = float(pair[1].split("=")[1].strip())
-		if(q==0):
+		if(q == 0.0):
 			if(encoding=="identity"):
 				priority.pop(encoding, None)
 			continue
@@ -183,7 +183,9 @@ def prioritizeEncoding(acceptVal):
 			if(i not in seenEncodings):
 				priority[i] = starPriority
 	try:
+		priority['identity'] = 1
 		return max(priority, key=priority.get)
+
 	except ValueError:
 		return None
 
