@@ -93,8 +93,6 @@ general-header =
 
 
 def get(requestDict, *args):
-    # relUrl = requestDict['requestLine']['requestUri'].split('/', 1)
-    # relUrl = relUrl[1]
     if(not utils.compatCheck(requestDict['requestLine']['httpVersion'])):
         return badRequest(requestDict, '505')
     config = configparser.ConfigParser()
@@ -209,7 +207,6 @@ def post(requestDict, *args):
                 queryWithDate = {utils.logDate(): body}
                 with open("log/postData.log", "a") as f:
                     json.dump(queryWithDate, f, indent="\t")
-                    #log not exactly in json, but avoids reading overhead
                     f.write("\n")
                 statusCode = "200"
                 responseBody = "Data Logged"

@@ -6,6 +6,7 @@ import queue
 import utils
 import configparser
 import requestHandlers
+import logging
 #class to encapsulate most socket functions
 class tcpSocket:
 	def __init__(self, host, port):
@@ -58,6 +59,9 @@ class Server:
 		self.logQueue = queue.Queue(10)
 		self.loggerThread = threading.Thread(target=self.logger)
 		self.loggerThread.start()
+		logging.basicConfig(filename='log/error.log', level=config['DEFAULT']['LogLevel'])
+		sys.excepthook = self.error_logger
+		threading.excepthook = self.error_logger
 
 	def logger(self):
 		if not os.path.exists("log"):
@@ -70,9 +74,15 @@ class Server:
 				continue
 			else:
 				f.write(log+"\n")
-				# f.flush()
-				# os.fsync(f.fileno())
 		f.close()
+
+	def error_logger(self, *args):
+		if(len(args) == 1):
+			args = args[0]
+		print("The server encountered an error and will stop now. A detailed log of this can be found in error.log")
+		logging.exception(utils.logDate(), exc_info=(args[0], args[1], args[2]))
+		self.stop()
+		os._exit(1)
 
 	def worker(self, clientConnection):
 		"""
@@ -122,7 +132,6 @@ class Server:
 					fullRequest += tmpData
 				parsedRequest = utils.requestParser(fullRequest)
 				#handle padding with blank space if content-length greater than body
-				#handle shortening of body in case of entire body at once (handled)
 				parsedRequest['requestBody'] = parsedRequest['requestBody'][0:contentLength]
 			elif(parsedRequest):
 				parsedRequest['requestBody'] = ''.encode()
@@ -152,7 +161,6 @@ class Server:
 				loggingInfo['referer'] = f'"{parsedRequest["requestHeaders"]["referer"]}"'
 			log = utils.logAccess(loggingInfo)
 			if(('Connection' in responseDict['responseHeaders']) and responseDict['responseHeaders']['Connection'].lower() == 'close'):
-				# clientConnection.shutdown(socket.SHUT_RDWR)
 				self.tcpSocket.close(clientConnection)
 				self.activeConn-=1
 				self.logQueue.put(log)
