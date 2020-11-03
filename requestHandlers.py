@@ -148,7 +148,7 @@ def get(requestDict, *args):
             body = zlib.compress(body)
         if(contentencoding == 'br'):
             body = brotli.compress(body)
-        if contentencoding is not 'identity':
+        if contentencoding != 'identity':
             responseDict['responseHeaders'].__setitem__('Content-Encoding',contentencoding)
         else:
             contentencoding = ""  
@@ -386,7 +386,7 @@ def badRequest(requestDict, *args):
         },
         'responseBody': f_bytes
     }
-    if f_bytes is not b'':
+    if f_bytes != b'':
         responseDict['responseHeaders'].__setitem__('Content-Length',str(len(f_bytes)))
     return responseDict
   
