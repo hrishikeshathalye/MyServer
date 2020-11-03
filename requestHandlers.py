@@ -99,6 +99,10 @@ def get(requestDict, *args):
     config.read('conf/myserver.conf')
     requestLine = requestDict['requestLine']
     requestHeaders = requestDict['requestHeaders']
+    acceptencoding = requestHeaders.get('accept-encoding',"")
+    contentencoding = utils.prioritizeEncoding(acceptencoding)
+    if not contentencoding:
+        return badRequest(requestDict, '406')
     uri = requestLine['requestUri'] 
     uri = uri.lstrip('/')
     path = urlparse(uri).path
@@ -111,15 +115,13 @@ def get(requestDict, *args):
     path = config['DEFAULT']['DocumentRoot'] + path
     
     if not os.path.isfile(path):
-        path = config['DEFAULT']['error-pages'] + '/404.html'
-        statusCode = '404'
-        dm = datetime.fromtimestamp(mktime(time.gmtime(os.path.getmtime(path))))
-    else:
-        dm = datetime.fromtimestamp(mktime(time.gmtime(os.path.getmtime(path))))
-        ifmod = requestHeaders.get('if-modified-since',utils.rfcDate(datetime.fromtimestamp(0)))         
-        ifunmod = requestHeaders.get('if-unmodified-since',utils.rfcDate(datetime.utcnow()))
-        statusCode = utils.compareDate(ifmod,utils.rfcDate(dm),utils.rfcDate(datetime.utcnow()))
-        statusCode = utils.compareDate2(ifunmod, utils.rfcDate(dm),statusCode)     
+        return badRequest(requestDict, '404')
+
+    dm = datetime.fromtimestamp(mktime(time.gmtime(os.path.getmtime(path))))
+    ifmod = requestHeaders.get('if-modified-since',utils.rfcDate(datetime.fromtimestamp(0)))         
+    ifunmod = requestHeaders.get('if-unmodified-since',utils.rfcDate(datetime.utcnow()))
+    statusCode = utils.compareDate(ifmod,utils.rfcDate(dm),utils.rfcDate(datetime.utcnow()))
+    statusCode = utils.compareDate2(ifunmod, utils.rfcDate(dm),statusCode)     
     with open(path,'rb') as f:
         f_bytes = f.read()
         
@@ -136,10 +138,23 @@ def get(requestDict, *args):
         }, 
         'responseBody' : ''.encode()
     }
-    if statusCode == '200' or statusCode =='404':
-        responseDict.__setitem__('responseBody', f_bytes)
+    if statusCode == '200':
+        body = f_bytes
+        if(contentencoding == 'gzip' or contentencoding == 'x-gzip'):
+            body = gzip.compress(body)
+        if(contentencoding == 'compress'):
+            body = lzw3.compress(body)
+        if(contentencoding == 'deflate'):
+            body = zlib.compress(body)
+        if(contentencoding == 'br'):
+            body = brotli.compress(body)
+        if contentencoding is not 'identity':
+            responseDict['responseHeaders'].__setitem__('Content-Encoding',contentencoding)
+        else:
+            contentencoding = ""  
+        responseDict.__setitem__('responseBody', body)
         responseDict['responseHeaders'].__setitem__('Content-Type' , typedict.get(subtype,'application/example'))
-        responseDict['responseHeaders'].__setitem__('ETag','"{}"'.format(hashlib.md5(responseDict['responseHeaders']['Last-Modified'].encode()).hexdigest()))
+        responseDict['responseHeaders'].__setitem__('ETag','"{}"'.format(hashlib.md5((responseDict['responseHeaders']['Last-Modified'] + contentencoding).encode()).hexdigest()))
     return responseDict
 
 def post(requestDict, *args):
@@ -366,10 +381,12 @@ def badRequest(requestDict, *args):
             'Connection': 'close',
             'Date': utils.rfcDate(datetime.utcnow()),
             'Content-Type' : typedict.get(subtype,'application/example'),
-            'Content-Length': str(len(f_bytes)),
+            
             'Server': utils.getServerInfo()
         },
         'responseBody': f_bytes
     }
+    if f_bytes is not b'':
+        responseDict['responseHeaders'].__setitem__('Content-Length',str(len(f_bytes)))
     return responseDict
   
