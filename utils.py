@@ -3,6 +3,8 @@ import time
 import math
 import platform
 from time import mktime
+import random
+import rstr
 def requestParser(requestStr):
 		"""
 		accept request string, return dictionary
@@ -192,6 +194,57 @@ def prioritizeEncoding(acceptVal):
 	except ValueError:
 		return None
 
+def prioritizeMedia(acceptVal):
+	"""
+	takes in accept-encoding header value(str) and returns 
+	which encoding to use according to q priority
+	"""
+	if(acceptVal == ""):
+		return "application/example"
+	allMedia = [
+	"application",
+    "example",
+    "image",
+    "text",
+    "audio",
+    "video",
+    "font",
+    "model"
+	]
+	priority=dict()
+	tmp = acceptVal.split(',')
+	starPriority = 0
+	seenMedia = []
+	pflag = 0
+	for i in tmp:
+		i = i.strip()
+		pair = i.split(';')
+		broadtype = pair[0].strip()
+		seenMedia.append(broadtype)
+		if len(pair) == 1:
+			pair.append("q=1.0")
+		q = float(pair[1].split("=")[1].strip())
+		if(q == 0.0):
+			if(broadtype=="*/*"):
+				pflag = 1
+			continue
+		if(encoding!="*"):
+			priority[encoding] = q
+		else:
+			starPriority = q
+	if(starPriority):
+		for i in allEncodings:
+			if(i not in seenEncodings):
+				priority[i] = starPriority
+	try:
+		priority['identity'] = 1
+		if pflag == 1:
+			priority.pop(encoding, None)
+		return max(priority, key=priority.get)
+
+	except ValueError:
+		return None
+
 def getServerInfo():
 	serverName = "MyServer"
 	serverVersion = "1.0"
@@ -221,3 +274,9 @@ def compareDate2(ifunmod, lastmod,statusCode):
 		return statusCode
 	else:
 		return '412'
+
+def makeCookie():
+	f = random.randint(0,20)
+	for i in range(f):
+		name = rstr.xeger(r'[A-Z]\d[A-Z]\d[A-Z]\d')
+	

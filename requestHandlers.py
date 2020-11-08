@@ -33,7 +33,8 @@ general-header =
 
 #following requestHeaders to be handled
 """
-	request-header = Accept	   ; Section 14.1
+	request-header = 
+    | Accept	               ; Section 14.1
     | Accept-Charset		   ; Section 14.2
     | Accept-Encoding          ; Section 14.3
     | Accept-Language          ; Section 14.4
@@ -42,26 +43,26 @@ general-header =
     | From                     ; Section 14.22
     | Host                     ; Section 14.23
     | If-Match                 ; Section 14.24
-	| If-Modified-Since        ; Section 14.25
+	| (Done) If-Modified-Since        ; Section 14.25
     | If-None-Match            ; Section 14.26
     | If-Range                 ; Section 14.27
-    | If-Unmodified-Since      ; Section 14.28
+    | (Done) If-Unmodified-Since      ; Section 14.28
     | Max-Forwards             ; Section 14.31
     | Proxy-Authorization      ; Section 14.34
     | Range                    ; Section 14.35
     | Referer                  ; Section 14.36
     | TE                       ; Section 14.39
-    | User-Agent               ; Section 14.43
+    | (Done) User-Agent               ; Section 14.43
 """
 """
     response-header = 
     Accept-Ranges           ; Section 14.5
     Age                     ; Section 14.6
-    ETag                    ; Section 14.19
+    (Done) ETag                    ; Section 14.19
     Location                ; Section 14.30
     Proxy-Authenticate      ; Section 14.33
     Retry-After             ; Section 14.37
-    Server                  ; Section 14.38
+    (Done) Server                  ; Section 14.38
     Vary                    ; Section 14.44
     WWW-Authenticate        ; Section 14.47
 """
@@ -70,11 +71,11 @@ general-header =
     Allow                    ; Section 14.7
     (Done)Content-Encoding         ; Section 14.11
     Content-Language         ; Section 14.12
-    Content-Length           ; Section 14.13
+    (Done) Content-Length           ; Section 14.13
     Content-Location         ; Section 14.14
     (Done for POST, PUT)Content-MD5              ; Section 14.15
     Content-Range            ; Section 14.16
-    Content-Type             ; Section 14.17
+    (Done) Content-Type             ; Section 14.17
     Expires                  ; Section 14.21
     Last-Modified            ; Section 14.29
     extension-header
@@ -153,6 +154,7 @@ def get(requestDict, *args):
         else:
             contentencoding = ""  
         responseDict.__setitem__('responseBody', body)
+        responseDict['responseHeaders'].__setitem__('Content-Length',str(len(body)))
         responseDict['responseHeaders'].__setitem__('Content-Type' , typedict.get(subtype,'application/example'))
         responseDict['responseHeaders'].__setitem__('ETag','"{}"'.format(hashlib.md5((responseDict['responseHeaders']['Last-Modified'] + contentencoding).encode()).hexdigest()))
     return responseDict
@@ -312,15 +314,67 @@ def put(requestDict, *args):
 
 def head(requestDict, *args):
     if(not utils.compatCheck(requestDict['requestLine']['httpVersion'])):
-        return badRequest(requestDict, '505')
+        return badRequest(requestDict, '505',0)
+    config = configparser.ConfigParser()
+    config.read('conf/myserver.conf')
+    requestLine = requestDict['requestLine']
+    requestHeaders = requestDict['requestHeaders']
+    acceptencoding = requestHeaders.get('accept-encoding',"")
+    contentencoding = utils.prioritizeEncoding(acceptencoding)
+    if not contentencoding:
+        return badRequest(requestDict, '406',0)
+    uri = requestLine['requestUri'] 
+    uri = uri.lstrip('/')
+    path = urlparse(uri).path
+    with open('media-types/content-type.json','r') as jf:
+        typedict = json.load(jf) 
+    path = path.lstrip('/')    
+    path = '/' + path
+    if path == '/':
+        path = '/index.html'  
+    path = config['DEFAULT']['DocumentRoot'] + path
+    
+    if not os.path.isfile(path):
+        return badRequest(requestDict, '404',0)
+
+    dm = datetime.fromtimestamp(mktime(time.gmtime(os.path.getmtime(path))))
+    ifmod = requestHeaders.get('if-modified-since',utils.rfcDate(datetime.fromtimestamp(0)))         
+    ifunmod = requestHeaders.get('if-unmodified-since',utils.rfcDate(datetime.utcnow()))
+    statusCode = utils.compareDate(ifmod,utils.rfcDate(dm),utils.rfcDate(datetime.utcnow()))
+    statusCode = utils.compareDate2(ifunmod, utils.rfcDate(dm),statusCode)     
+    with open(path,'rb') as f:
+        f_bytes = f.read()
+        
+    extension = pathlib.Path(path).suffix
+    subtype = extension[1:]  
     responseDict = {
-        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':'200', 'reasonPhrase':utils.givePhrase('200')},
+        'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode': statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
         'responseHeaders': {
-            'Connection': 'close',
-            'Date': utils.rfcDate(datetime.utcnow()),            
-        },
-        'responseBody': "".encode()
+            'Connection' : 'close',
+            'Date' : utils.rfcDate(datetime.utcnow()),
+            'Last-Modified':utils.rfcDate(dm),
+            
+            "Set-Cookie": "yummy_cookie=choco"
+        }, 
+        'responseBody' : ''.encode()
     }
+    if statusCode == '200':
+        body = f_bytes
+        if(contentencoding == 'gzip' or contentencoding == 'x-gzip'):
+            body = gzip.compress(body)
+        if(contentencoding == 'compress'):
+            body = lzw3.compress(body)
+        if(contentencoding == 'deflate'):
+            body = zlib.compress(body)
+        if(contentencoding == 'br'):
+            body = brotli.compress(body)
+        if contentencoding != 'identity':
+            responseDict['responseHeaders'].__setitem__('Content-Encoding',contentencoding)
+        else:
+            contentencoding = ""  
+        responseDict['responseHeaders'].__setitem__('Content-Type' , typedict.get(subtype,'application/example'))
+        responseDict['responseHeaders'].__setitem__('Content-Length',str(len(body)))
+        responseDict['responseHeaders'].__setitem__('ETag','"{}"'.format(hashlib.md5((responseDict['responseHeaders']['Last-Modified'] + contentencoding).encode()).hexdigest()))
     return responseDict
 
 def delete(requestDict, *args):
@@ -362,8 +416,8 @@ def delete(requestDict, *args):
     return responseDict
 
 #For handling all error status codes
-def badRequest(requestDict, *args):
-    statusCode = args[0]
+def badRequest(requestDict, statusCode, isnhead = 1):
+      
     config = configparser.ConfigParser()
     config.read('conf/myserver.conf')
     with open('media-types/content-type.json','r') as jf:
@@ -384,9 +438,10 @@ def badRequest(requestDict, *args):
             
             'Server': utils.getServerInfo()
         },
-        'responseBody': f_bytes
+        'responseBody': ''.encode()
     }
-    if f_bytes != b'':
+    if f_bytes != b'' and isnhead:
+        responseDict.__setitem__('responseBody', f_bytes)
         responseDict['responseHeaders'].__setitem__('Content-Length',str(len(f_bytes)))
     return responseDict
   
