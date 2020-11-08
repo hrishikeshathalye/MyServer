@@ -193,7 +193,7 @@ def prioritizeEncoding(acceptVal):
 
 	except ValueError:
 		return None
-
+# Ignore for now
 def prioritizeMedia(acceptVal):
 	"""
 	takes in accept-encoding header value(str) and returns 
@@ -275,8 +275,11 @@ def compareDate2(ifunmod, lastmod,statusCode):
 	else:
 		return '412'
 
+#Ignore for now
 def makeCookie():
 	f = random.randint(0,20)
 	for i in range(f):
 		name = rstr.xeger(r'[A-Z]\d[A-Z]\d[A-Z]\d')
 	
+def ifmatchparser(ifmatch):
+	return ifmatch.split(',')		
