@@ -258,20 +258,23 @@ def compatCheck(httpVersion):
 	return (math.floor(float(version)) == 1 ) and (protocol=='HTTP')
 # def logError():
 
-def compareDate(ifmod, lastmod,currdate):
+def compareDate(ifmod, lastmod,currdate,statuscode,flag):
 	ifmod_sec = mktime(time.strptime(ifmod,'%a, %d %b %Y %H:%M:%S %Z'))
 	lastmod_sec = mktime(time.strptime(lastmod,'%a, %d %b %Y %H:%M:%S %Z'))
 	currdate_sec = mktime(time.strptime(currdate,'%a, %d %b %Y %H:%M:%S %Z'))
 	if ifmod_sec < lastmod_sec or ifmod_sec > currdate_sec:
-		return '200'
+		if flag:
+			return statuscode
+		else:
+			return '200'
 	else:
 		return '304'
 
-def compareDate2(ifunmod, lastmod,statusCode):
+def compareDate2(ifunmod, lastmod,statuscode):
 	ifunmod_sec = mktime(time.strptime(ifunmod,'%a, %d %b %Y %H:%M:%S %Z'))
 	lastmod_sec = mktime(time.strptime(lastmod,'%a, %d %b %Y %H:%M:%S %Z'))
 	if ifunmod_sec > lastmod_sec:
-		return statusCode
+		return statuscode
 	else:
 		return '412'
 

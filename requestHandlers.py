@@ -103,6 +103,7 @@ def get(requestDict, *args):
     acceptencoding = requestHeaders.get('accept-encoding',"")
     contentencoding = utils.prioritizeEncoding(acceptencoding)
     ce = contentencoding
+    statusCode = '200'
     if contentencoding == 'identity':
         ce = ""
     if not contentencoding:
@@ -120,20 +121,33 @@ def get(requestDict, *args):
     
     if not os.path.isfile(path):
         return badRequest(requestDict, '404')
-
     dm = datetime.fromtimestamp(mktime(time.gmtime(os.path.getmtime(path))))
     ifmod = requestHeaders.get('if-modified-since',utils.rfcDate(datetime.fromtimestamp(0)))         
     ifunmod = requestHeaders.get('if-unmodified-since',utils.rfcDate(datetime.utcnow()))
     ifmatch = requestHeaders.get('if-match',"*")
+    ifnonematch = requestHeaders.get('if-none-match',"")
     ifmatchlist = utils.ifmatchparser(ifmatch)
-    statusCode = utils.compareDate(ifmod,utils.rfcDate(dm),utils.rfcDate(datetime.utcnow()))
-    statusCode = utils.compareDate2(ifunmod, utils.rfcDate(dm),statusCode)  
-    Etag =  hashlib.md5((utils.rfcDate(dm) + ce).encode()).hexdigest()
+    ifnmatchlist = utils.ifmatchparser(ifnonematch)
+    Etag =  '"{}"'.format(hashlib.md5((utils.rfcDate(dm) + ce).encode()).hexdigest())
     for iftag in ifmatchlist:
-        print(Etag, iftag)
         if iftag == "*" or Etag == iftag:
+            break
     else:
         statusCode = '412'  
+    for ifntag in ifnmatchlist:
+        if ifntag == "*" or Etag == ifntag:
+            statusCode = '304'
+            break 
+        elif ifntag == "":
+            break    
+    else: 
+        ifmod = utils.rfcDate(datetime.fromtimestamp(0))    
+    if ifmod == utils.rfcDate(datetime.fromtimestamp(0)):
+        flag = 1 
+    else :
+        flag = 0               
+    statusCode = utils.compareDate(ifmod,utils.rfcDate(dm),utils.rfcDate(datetime.utcnow()),statusCode,flag)
+    statusCode = utils.compareDate2(ifunmod, utils.rfcDate(dm),statusCode)           
     with open(path,'rb') as f:
         f_bytes = f.read()
         
@@ -167,7 +181,7 @@ def get(requestDict, *args):
         responseDict.__setitem__('responseBody', body)
         responseDict['responseHeaders'].__setitem__('Content-Length',str(len(body)))
         responseDict['responseHeaders'].__setitem__('Content-Type' , typedict.get(subtype,'application/example'))
-        responseDict['responseHeaders'].__setitem__('ETag','"{}"'.format(Etag))
+        responseDict['responseHeaders'].__setitem__('ETag',Etag)
     return responseDict
 
 def post(requestDict, *args):
