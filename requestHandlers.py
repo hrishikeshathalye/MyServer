@@ -42,9 +42,9 @@ general-header =
     | Expect                   ; Section 14.20
     | From                     ; Section 14.22
     | Host                     ; Section 14.23
-    | If-Match                 ; Section 14.24
+    | (Done)If-Match                 ; Section 14.24
 	| (Done) If-Modified-Since        ; Section 14.25
-    | If-None-Match            ; Section 14.26
+    | (Done)If-None-Match            ; Section 14.26
     | If-Range                 ; Section 14.27
     | (Done) If-Unmodified-Since      ; Section 14.28
     | Max-Forwards             ; Section 14.31
@@ -98,6 +98,7 @@ def get(requestDict, *args):
         return badRequest(requestDict, '505')
     config = configparser.ConfigParser()
     config.read('conf/myserver.conf')
+    ipaddress = args[1]
     requestLine = requestDict['requestLine']
     requestHeaders = requestDict['requestHeaders']
     acceptencoding = requestHeaders.get('accept-encoding',"")
@@ -153,17 +154,21 @@ def get(requestDict, *args):
         
     extension = pathlib.Path(path).suffix
     subtype = extension[1:]  
+    try:
+        cookie = utils.parsecookie(requestHeaders['cookie'])    
+    except:
+        cookie = utils.makecookie(path,ipaddress,utils.rfcDate(datetime.utcnow()))    
     responseDict = {
         'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode': statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
         'responseHeaders': {
             'Connection' : 'close',
             'Date' : utils.rfcDate(datetime.utcnow()),
-            'Last-Modified':utils.rfcDate(dm),
-            
-            "Set-Cookie": "yummy_cookie=choco"
+            'Last-Modified':utils.rfcDate(dm)
         }, 
         'responseBody' : ''.encode()
     }
+    for i in cookie.keys():
+        responseDict['responseHeaders'].__setitem__('Set-Cookie',i + '=' + cookie[i])
     if statusCode == '200':
         body = f_bytes
         if(contentencoding == 'gzip' or contentencoding == 'x-gzip'):

@@ -27,7 +27,7 @@ class tcpSocket:
 	def accept(self):
 		clientConnection, clientAddress = self.socketVar.accept()
 		clientConnection.settimeout(10.0)
-		return clientConnection
+		return clientConnection,clientAddress
 
 	def receive(self, clientConnection, bufSize):
 		"""
@@ -84,7 +84,7 @@ class Server:
 		self.stop()
 		os._exit(1)
 
-	def worker(self, clientConnection):
+	def worker(self, clientConnection,clientAddress):
 		"""
 		server spawns worker threads
 		"""
@@ -148,7 +148,7 @@ class Server:
 			else:
 				handler = switch.get(parsedRequest['requestLine']['method'], requestHandlers.badRequest)
 			#only bad request handler inspects the second argument
-			responseDict = handler(parsedRequest, '501')
+			responseDict = handler(parsedRequest, '501',clientAddress)
 			responseString = utils.responseBuilder(responseDict)
 			self.tcpSocket.send(clientConnection, responseString)
 			loggingInfo['statusCode'] = responseDict['statusLine']['statusCode']
@@ -177,13 +177,14 @@ class Server:
 			if(self.activeConn == self.maxConn):
 				continue
 			try:
-				clientConnection = self.tcpSocket.accept()
+				clientConnection,clientAddress = self.tcpSocket.accept()
+				
 				self.activeConn+=1
 			except BlockingIOError:
 				continue
 			else:
 				#had to declare daemon coupled with timeout in join due to a race condition in socket recv
-				workerThread = threading.Thread(target=self.worker, args=(clientConnection,), daemon=True)
+				workerThread = threading.Thread(target=self.worker, args=(clientConnection,clientAddress), daemon=True)
 				self.threads.append(workerThread)
 				workerThread.start()
 	

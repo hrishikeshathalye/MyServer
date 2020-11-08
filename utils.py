@@ -5,6 +5,7 @@ import platform
 from time import mktime
 import random
 import rstr
+import hashlib
 def requestParser(requestStr):
 		"""
 		accept request string, return dictionary
@@ -279,10 +280,29 @@ def compareDate2(ifunmod, lastmod,statuscode):
 		return '412'
 
 #Ignore for now
-def makeCookie():
-	f = random.randint(0,20)
-	for i in range(f):
-		name = rstr.xeger(r'[A-Z]\d[A-Z]\d[A-Z]\d')
+def makecookie(path,ip,date):
+	value = path + ip[0] + date
+	value = hashlib.md5(value.encode()).hexdigest()
+	invalid = ['22','2c','3b','5c']
+	for i in invalid:
+		for j in range(0,len(value),2):
+			if i == value[j:j+2]:
+				vlist = list(value)
+				vlist[j:j+2] = ['3','f']
+				value = ''.join(vlist)
+	cook = dict()
+	cook['mycookie'] = value
+	return cook
+
 	
 def ifmatchparser(ifmatch):
-	return ifmatch.split(',')		
+	return ifmatch.split(',')
+
+def parsecookie(cookie):
+	cookielist = cookie.split(';')
+	cook = dict()
+	for c in cookielist:
+		cook[c.split('=')[0]] = c.split('=')[1]
+	return cook	
+
+
