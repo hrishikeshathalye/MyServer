@@ -20,15 +20,15 @@ import shutil
 
 """
 general-header = 
-    Cache-Control            ; Section 14.9
+    (Not To Be Done)Cache-Control            ; Section 14.9
     (Done) Connection               ; Section 14.10
     (Done) Date                     ; Section 14.18
-    Pragma                   ; Section 14.32
-    Trailer                  ; Section 14.40
+    (Not To Be Done)Pragma                   ; Section 14.32
+    (Not To Be Done - since chunked not done)Trailer                  ; Section 14.40
     (Not to be Done) Transfer-Encoding        ; Section 14.41
-    Upgrade                  ; Section 14.42
-    Via                      ; Section 14.45
-    *Warning                  ; Section 14.46
+    (Not to be Done)Upgrade                  ; Section 14.42
+    (Not to be Done)Via                      ; Section 14.45
+    (Not to be Done)Warning                  ; Section 14.46
 """
 
 #following requestHeaders to be handled
@@ -41,25 +41,25 @@ general-header =
     | Authorization            ; Section 14.8
     | Expect                   ; Section 14.20
     | From                     ; Section 14.22
-    | Host                     ; Section 14.23
+    | (Done)Host                     ; Section 14.23
     | (Done)If-Match                 ; Section 14.24
 	| (Done) If-Modified-Since        ; Section 14.25
     | (Done)If-None-Match            ; Section 14.26
     | If-Range                 ; Section 14.27
     | (Done) If-Unmodified-Since      ; Section 14.28
-    | Max-Forwards             ; Section 14.31
+    | (Not To be Done)Max-Forwards             ; Section 14.31
     | Proxy-Authorization      ; Section 14.34
     | Range                    ; Section 14.35
-    | Referer                  ; Section 14.36
-    | TE                       ; Section 14.39
+    | (Done, used for logging)Referer                  ; Section 14.36
+    | (Not To be Done)TE                       ; Section 14.39
     | (Done) User-Agent               ; Section 14.43
 """
 """
     response-header = 
     Accept-Ranges           ; Section 14.5
-    Age                     ; Section 14.6
+    *Age                     ; Section 14.6
     (Done) ETag                    ; Section 14.19
-    Location                ; Section 14.30
+    *Location                ; Section 14.30
     Proxy-Authenticate      ; Section 14.33
     Retry-After             ; Section 14.37
     (Done) Server                  ; Section 14.38
@@ -96,6 +96,8 @@ general-header =
 def get(requestDict, *args):
     if(not utils.compatCheck(requestDict['requestLine']['httpVersion'])):
         return badRequest(requestDict, '505')
+    if('host' not in requestDict['requestHeaders']):
+        return badRequest(requestDict, '400')
     config = configparser.ConfigParser()
     config.read('conf/myserver.conf')
     ipaddress = args[1]
@@ -119,7 +121,6 @@ def get(requestDict, *args):
     if path == '/':
         path = '/index.html'  
     path = config['DEFAULT']['DocumentRoot'] + path
-    
     if not os.path.isfile(path):
         return badRequest(requestDict, '404')
     dm = datetime.fromtimestamp(mktime(time.gmtime(os.path.getmtime(path))))
@@ -196,6 +197,8 @@ def post(requestDict, *args):
     """
     if(not utils.compatCheck(requestDict['requestLine']['httpVersion'])):
         return badRequest(requestDict, '505')
+    if('host' not in requestDict['requestHeaders']):
+        return badRequest(requestDict, '400')
     statusCode = None
     responseBody = ''
     with open('media-types/content-type-rev.json','r') as f:
@@ -275,6 +278,8 @@ def post(requestDict, *args):
 def put(requestDict, *args):
     if(not utils.compatCheck(requestDict['requestLine']['httpVersion'])):
         return badRequest(requestDict, '505')
+    if('host' not in requestDict['requestHeaders']):
+        return badRequest(requestDict, '400')
     statusCode = None
     responseBody = ''
     config = configparser.ConfigParser()
@@ -345,6 +350,8 @@ def put(requestDict, *args):
 def head(requestDict, *args):
     if(not utils.compatCheck(requestDict['requestLine']['httpVersion'])):
         return badRequest(requestDict, '505',0)
+    if('host' not in requestDict['requestHeaders']):
+        return badRequest(requestDict, '400')
     config = configparser.ConfigParser()
     config.read('conf/myserver.conf')
     requestLine = requestDict['requestLine']
@@ -410,6 +417,8 @@ def head(requestDict, *args):
 def delete(requestDict, *args):
     if(not utils.compatCheck(requestDict['requestLine']['httpVersion'])):
         return badRequest(requestDict, '505')
+    if('host' not in requestDict['requestHeaders']):
+        return badRequest(requestDict, '400')
     config = configparser.ConfigParser()
     config.read('conf/myserver.conf')
     requestLine = requestDict['requestLine']
@@ -447,7 +456,6 @@ def delete(requestDict, *args):
 
 #For handling all error status codes
 def badRequest(requestDict, statusCode, isnhead = 1):
-      
     config = configparser.ConfigParser()
     config.read('conf/myserver.conf')
     with open('media-types/content-type.json','r') as jf:
@@ -465,7 +473,6 @@ def badRequest(requestDict, statusCode, isnhead = 1):
             'Connection': 'close',
             'Date': utils.rfcDate(datetime.utcnow()),
             'Content-Type' : typedict.get(subtype,'application/example'),
-            
             'Server': utils.getServerInfo()
         },
         'responseBody': ''.encode()
