@@ -35,40 +35,40 @@ general-header =
 """
 	request-header = 
     | Accept	               ; Section 14.1
-    | Accept-Charset		   ; Section 14.2
+    | -Accept-Charset		   ; Section 14.2
     | (Done) Accept-Encoding          ; Section 14.3
     | Accept-Language          ; Section 14.4
     | Authorization            ; Section 14.8
-    | Expect                   ; Section 14.20
-    | From                     ; Section 14.22
+    | -Expect                   ; Section 14.20
+    | -From                     ; Section 14.22
     | (Done)Host                     ; Section 14.23
     | (Done)If-Match                 ; Section 14.24
 	| (Done) If-Modified-Since        ; Section 14.25
     | (Done)If-None-Match            ; Section 14.26
-    | If-Range                 ; Section 14.27
+    | (Not to be done)If-Range                 ; Section 14.27
     | (Done) If-Unmodified-Since      ; Section 14.28
     | (Not To be Done)Max-Forwards             ; Section 14.31
-    | Proxy-Authorization      ; Section 14.34
-    | Range                    ; Section 14.35
+    | (Not To be Done)Proxy-Authorization      ; Section 14.34
+    | (Not To be Done)Range                    ; Section 14.35
     | (Done, used for logging)Referer                  ; Section 14.36
     | (Not To be Done)TE                       ; Section 14.39
     | (Done) User-Agent               ; Section 14.43
 """
 """
     response-header = 
-    Accept-Ranges           ; Section 14.5
+    (Not To be Done)Accept-Ranges           ; Section 14.5
     *Age                     ; Section 14.6
     (Done) ETag                    ; Section 14.19
     *Location                ; Section 14.30
-    Proxy-Authenticate      ; Section 14.33
-    Retry-After             ; Section 14.37
+    (Not To be Done)Proxy-Authenticate      ; Section 14.33
+    -Retry-After             ; Section 14.37
     (Done) Server                  ; Section 14.38
-    Vary                    ; Section 14.44
-    WWW-Authenticate        ; Section 14.47
+    (Not To be Done)Vary                    ; Section 14.44
+    (Not To be Done)WWW-Authenticate        ; Section 14.47
 """
 """
     entity-header  = 
-    Allow                    ; Section 14.7
+    -Allow                    ; Section 14.7
     (Done)Content-Encoding         ; Section 14.11
     Content-Language         ; Section 14.12
     (Done) Content-Length           ; Section 14.13
@@ -195,6 +195,9 @@ def post(requestDict, *args):
     The meaning of the Content-Location header in PUT or POST requests is
     undefined; servers are free to ignore it in those cases. (ignored)
     """
+    config = configparser.ConfigParser()
+    config.read('conf/myserver.conf')
+    postDataLogPath = os.path.join(config['DEFAULT']['LogDir'], config['DEFAULT']['PostDataLog'])
     if(not utils.compatCheck(requestDict['requestLine']['httpVersion'])):
         return badRequest(requestDict, '505')
     if('host' not in requestDict['requestHeaders']):
@@ -231,7 +234,7 @@ def post(requestDict, *args):
             queryDict = parse_qs(body, encoding='utf-8')
             queryWithDate = {utils.logDate(): queryDict}
             try:
-                with open("log/postData.log", "a") as f:
+                with open(postDataLogPath, "a") as f:
                     json.dump(queryWithDate, f, indent="\t")
                     #log not exactly in json, but avoids reading overhead
                     f.write("\n")
@@ -244,7 +247,7 @@ def post(requestDict, *args):
             body = json.loads(body)
             queryWithDate = {utils.logDate(): body}
             try:
-                with open("log/postData.log", "a") as f:
+                with open(postDataLogPath, "a") as f:
                     json.dump(queryWithDate, f, indent="\t")
                     #log not exactly in json, but avoids reading overhead
                     f.write("\n")
@@ -255,7 +258,7 @@ def post(requestDict, *args):
         else:
             try:
                 queryWithDate = {utils.logDate(): body}
-                with open("log/postData.log", "a") as f:
+                with open(postDataLogPath, "a") as f:
                     json.dump(queryWithDate, f, indent="\t")
                     f.write("\n")
                 statusCode = "200"
@@ -460,7 +463,7 @@ def badRequest(requestDict, statusCode, isnhead = 1):
     config.read('conf/myserver.conf')
     with open('media-types/content-type.json','r') as jf:
         typedict = json.load(jf) 
-    path = config['DEFAULT']['error-pages'] + f'/{statusCode}.html'
+    path = config['DEFAULT']['ErrorPages'] + f'/{statusCode}.html'
     extension = pathlib.Path(path).suffix
     subtype = extension[1:]
     f_bytes = b''

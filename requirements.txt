@@ -13,3 +13,4 @@ json
 gzip
 zlib
 shutil
+requests

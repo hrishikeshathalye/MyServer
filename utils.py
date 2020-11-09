@@ -4,7 +4,6 @@ import math
 import platform
 from time import mktime
 import random
-import rstr
 import hashlib
 def requestParser(requestStr):
 		"""
@@ -257,7 +256,6 @@ def compatCheck(httpVersion):
 	protocol = httpVersion.split('/')[0].strip()
 	version = httpVersion.split('/')[1].strip()
 	return (math.floor(float(version)) == 1 ) and (protocol=='HTTP')
-# def logError():
 
 def compareDate(ifmod, lastmod,currdate,statuscode,flag):
 	ifmod_sec = mktime(time.strptime(ifmod,'%a, %d %b %Y %H:%M:%S %Z'))

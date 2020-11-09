@@ -44,11 +44,16 @@ class tcpSocket:
 	def close(self, clientConnection):
 		clientConnection.close()
 	
-class Server:	
+class Server:
 	def __init__(self, host, port):
 		config = configparser.ConfigParser()
 		config.read('conf/myserver.conf')
 		self.maxConn = int(config['DEFAULT']['MaxSimultaneousConnections'])
+		self.logDir = config['DEFAULT']['LogDir']
+		if not os.path.exists(self.logDir):
+			os.makedirs(self.logDir)
+		self.errLogPath = os.path.join(self.logDir, config['DEFAULT']['ErrorLog'])
+		self.accessLogPath = os.path.join(self.logDir, config['DEFAULT']['AccessLog'])
 		self.activeConn = 0
 		#A variable which contains all thread objects
 		self.threads = []
@@ -59,14 +64,14 @@ class Server:
 		self.logQueue = queue.Queue(10)
 		self.loggerThread = threading.Thread(target=self.logger)
 		self.loggerThread.start()
-		logging.basicConfig(filename='log/error.log', level=config['DEFAULT']['LogLevel'])
+		logging.basicConfig(filename=self.errLogPath, level=config['DEFAULT']['LogLevel'])
 		sys.excepthook = self.error_logger
 		threading.excepthook = self.error_logger
 
 	def logger(self):
-		if not os.path.exists("log"):
-			os.makedirs("log")
-		f = open("log/access.log", 'a')
+		if not os.path.exists(self.logDir):
+			os.makedirs(self.logDir)
+		f = open(self.accessLogPath, 'a')
 		while(self.loggerStatus):
 			try:
 				log = self.logQueue.get(block=False)
@@ -79,7 +84,7 @@ class Server:
 	def error_logger(self, *args):
 		if(len(args) == 1):
 			args = args[0]
-		print("The server encountered an error and will stop now. A detailed log of this can be found in error.log")
+		print(f"The server encountered an error and will stop now. A detailed log of this can be found in {self.errLogPath}")
 		logging.exception(utils.logDate(), exc_info=(args[0], args[1], args[2]))
 		self.stop()
 		os._exit(1)
@@ -97,7 +102,9 @@ class Server:
 			'statusCode':'-',
 			'dataSize':0,
 			'referer':'"-"',
-			'userAgent':'"-"'
+			'userAgent':'"-"',
+			'cookie':'"-"',
+			'set-cookie':'"-"'
 		}
 		while self.status:
 			fullRequest = b''
@@ -113,7 +120,6 @@ class Server:
 					return
 			loggingInfo['time'] =  "["+utils.logDate()+"]"
 			parsedRequest = utils.requestParser(fullRequest)
-			#('transfer-encoding' in parsedRequest['requestHeaders']) was below
 			if(parsedRequest and ('content-length' in parsedRequest['requestHeaders'])):
 				contentLength = int(parsedRequest['requestHeaders']['content-length'])
 				sizeRead=0 #bytes read till now
@@ -152,6 +158,7 @@ class Server:
 			responseString = utils.responseBuilder(responseDict)
 			self.tcpSocket.send(clientConnection, responseString)
 			loggingInfo['statusCode'] = responseDict['statusLine']['statusCode']
+			loggingInfo['set-cookie'] = '"'+f"{responseDict['responseHeaders'].get('Set-Cookie', '-')}"+'"'
 			loggingInfo['requestLine'] = '"'+(fullRequest.split('\r\n'.encode(), 1)[0]).decode('utf-8')+'"'
 			if('responseBody' in responseDict):
 				loggingInfo['dataSize'] = len(responseDict['responseBody'])
@@ -159,6 +166,8 @@ class Server:
 				loggingInfo['userAgent'] = f'"{parsedRequest["requestHeaders"]["user-agent"]}"'
 			if(parsedRequest and 'referer' in parsedRequest["requestHeaders"]):
 				loggingInfo['referer'] = f'"{parsedRequest["requestHeaders"]["referer"]}"'
+			if(parsedRequest and 'cookie' in parsedRequest["requestHeaders"]):
+				loggingInfo['cookie'] = f'"{parsedRequest["requestHeaders"]["cookie"]}"'
 			log = utils.logAccess(loggingInfo)
 			if(('Connection' in responseDict['responseHeaders']) and responseDict['responseHeaders']['Connection'].lower() == 'close'):
 				self.tcpSocket.close(clientConnection)
@@ -209,14 +218,6 @@ class Server:
 		print("Waiting for logger to finish logging...")
 		self.loggerThread.join()
 		print("Server has stopped.")
-
-	# def restart(self):
-	# 	"""
-	# 	restarts the server
-	# 	"""
-	# 	self.stop()
-	# 	print("Restarting Server")
-	# 	self.serve()
 		
 if __name__ == "__main__":
 	#An instance of a multithreaded server

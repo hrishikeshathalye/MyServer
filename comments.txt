@@ -1,3 +1,0 @@
-File to track comments made during project discussion lectures:
-
-1. POST data should be logged
