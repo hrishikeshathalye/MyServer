@@ -5,6 +5,9 @@ import platform
 from time import mktime
 import random
 import hashlib
+import os
+import json
+import pathlib
 def requestParser(requestStr):
 		"""
 		accept request string, return dictionary
@@ -193,57 +196,47 @@ def prioritizeEncoding(acceptVal):
 
 	except ValueError:
 		return None
-# Ignore for now
-def prioritizeMedia(acceptVal):
+
+def prioritizeMedia(acceptVal,extension,path):
 	"""
-	takes in accept-encoding header value(str) and returns 
-	which encoding to use according to q priority
+	takes in accept-media header value(str) and returns 
+	which media type to use according to q priority
 	"""
 	if(acceptVal == ""):
 		return "application/example"
-	allMedia = [
-	"application",
-    "example",
-    "image",
-    "text",
-    "audio",
-    "video",
-    "font",
-    "model"
-	]
-	priority=dict()
+	with open('media-types/content-qvals.json','r') as jf:
+		priority = json.load(jf)
 	tmp = acceptVal.split(',')
-	starPriority = 0
-	seenMedia = []
-	pflag = 0
 	for i in tmp:
 		i = i.strip()
 		pair = i.split(';')
 		broadtype = pair[0].strip()
-		seenMedia.append(broadtype)
+		mtype = broadtype.split("/")[0]
+		subtype = broadtype.split("/")[1]
 		if len(pair) == 1:
 			pair.append("q=1.0")
 		q = float(pair[1].split("=")[1].strip())
-		if(q == 0.0):
-			if(broadtype=="*/*"):
-				pflag = 1
-			continue
-		if(encoding!="*"):
-			priority[encoding] = q
+		tag = pair[1].split("=")[0].strip()
+		if broadtype == "*/*" :
+			q -= 0.000001
+		if tag == "level":
+			q += 0.01
+		if(subtype != "*"):
+			if mtype + "/" + subtype not in priority.keys():
+				q = 0
+				
+			priority[mtype + "/" + subtype] = q
 		else:
-			starPriority = q
-	if(starPriority):
-		for i in allEncodings:
-			if(i not in seenEncodings):
-				priority[i] = starPriority
-	try:
-		priority['identity'] = 1
-		if pflag == 1:
-			priority.pop(encoding, None)
-		return max(priority, key=priority.get)
-
-	except ValueError:
-		return None
+			for key in priority.keys():
+				if key.split("/")[0] == mtype:
+					if key not in priority.keys():
+						q = 0.00000001
+					priority[key] = q - 0.00000001
+	sortedpriority = sorted(priority.items(), key=lambda x: x[1],reverse = True)
+	for key in sortedpriority:
+		if key[1] != 0 and (os.path.isfile(path.rstrip(pathlib.Path(path).suffix) + "." + key[0].split("/")[1]) or key[0].split("/")[1] == "*"):
+			return key[0].split("/")[1]
+	return -1
 
 def getServerInfo():
 	serverName = "MyServer"
