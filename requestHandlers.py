@@ -104,6 +104,7 @@ def get(requestDict, *args):
     requestLine = requestDict['requestLine']
     requestHeaders = requestDict['requestHeaders']
     acceptencoding = requestHeaders.get('accept-encoding',"")
+    accept = requestHeaders.get('accept','*/*')
     contentencoding = utils.prioritizeEncoding(acceptencoding)
     ce = contentencoding
     statusCode = '200'
@@ -121,8 +122,16 @@ def get(requestDict, *args):
     if path == '/':
         path = '/index.html'  
     path = config['DEFAULT']['DocumentRoot'] + path
+
     if not os.path.isfile(path):
         return badRequest(requestDict, '404')
+    extension = pathlib.Path(path).suffix      
+    subtype = utils.prioritizeMedia(accept,extension,path)
+    if subtype == -1 :
+        return badRequest(requestDict,'406',0)
+    if subtype == "*":
+        subtype = extension[1:]   
+    path = path.rstrip(pathlib.Path(path).suffix) + "." + subtype    
     dm = datetime.fromtimestamp(mktime(time.gmtime(os.path.getmtime(path))))
     ifmod = requestHeaders.get('if-modified-since',utils.rfcDate(datetime.fromtimestamp(0)))         
     ifunmod = requestHeaders.get('if-unmodified-since',utils.rfcDate(datetime.utcnow()))
@@ -153,8 +162,7 @@ def get(requestDict, *args):
     with open(path,'rb') as f:
         f_bytes = f.read()
         
-    extension = pathlib.Path(path).suffix
-    subtype = extension[1:]  
+   
     try:
         cookie = utils.parsecookie(requestHeaders['cookie'])    
     except:
@@ -529,13 +537,14 @@ def badRequest(requestDict, statusCode, isnhead = 1):
         'responseHeaders': {
             'Connection': 'close',
             'Date': utils.rfcDate(datetime.utcnow()),
-            'Content-Type' : typedict.get(subtype,'application/example'),
+            
             'Server': utils.getServerInfo()
         },
         'responseBody': ''.encode()
     }
     if f_bytes != b'' and isnhead:
         responseDict.__setitem__('responseBody', f_bytes)
+        responseDict['responseHeaders'].__setitem__('Content-Type' , typedict.get(subtype,'application/example'))
         responseDict['responseHeaders'].__setitem__('Content-Length',str(len(f_bytes)))
     return responseDict
   
