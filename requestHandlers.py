@@ -301,7 +301,23 @@ def put(requestDict, *args):
     contentType = requestDict['requestHeaders'].get('content-type', '')
     contentExt =  typeToExt.get(contentType, '')
     requestBody = requestDict['requestBody']
-      
+    uri = requestLine['requestUri']
+    uri = uri.lstrip('/')
+    path = urlparse(uri).path
+    path = path.lstrip('/')
+    path = '/' + path
+    # if path == '/':
+    #     path = '/index.html'  
+    path = config['DEFAULT']['DocumentRoot'] + path
+    dm = datetime.fromtimestamp(mktime(time.gmtime(os.path.getmtime(path))))
+    ifmatch = requestHeaders.get('if-match',"*")  
+    ifmatchlist = utils.ifmatchparser(ifmatch)
+    Etag =  '"{}"'.format(hashlib.md5((utils.rfcDate(dm) + ce).encode()).hexdigest())
+    for iftag in ifmatchlist:
+        if iftag == "*" or Etag == iftag:
+            break
+    else:
+        statusCode = '412'  
     #decoding according to content-encoding
     if('content-md5' in requestDict['requestHeaders']):
         checksum = hashlib.md5(requestBody).hexdigest()
@@ -318,14 +334,7 @@ def put(requestDict, *args):
                 requestBody = zlib.decompress(requestBody)
             if(i == 'br'):
                 requestBody = brotli.decompress(requestBody)
-        uri = requestLine['requestUri']
-        uri = uri.lstrip('/')
-        path = urlparse(uri).path
-        path = path.lstrip('/')
-        path = '/' + path
-        # if path == '/':
-        #     path = '/index.html'  
-        path = config['DEFAULT']['DocumentRoot'] + path
+        
         parentDirectory = os.path.split(path)[0]
         filename = os.path.split(path)[1]
         try:
