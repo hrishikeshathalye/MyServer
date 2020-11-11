@@ -10,7 +10,7 @@ import logging
 
 #class to encapsulate most socket functions
 class tcpSocket:
-	def __init__(self, host, port, timeout):
+	def __init__(self, host, port, timeout, queueSize):
 		"""
 		creates tcp socket, binds to host and port, makes it listen
 		"""
@@ -24,7 +24,7 @@ class tcpSocket:
 		self.socketVar.setblocking(False)
 		self.socketVar.bind((host, port))
 		self.port = self.socketVar.getsockname()[1]
-		self.socketVar.listen(100)
+		self.socketVar.listen(queueSize)
 
 	def accept(self):
 		clientConnection, clientAddress = self.socketVar.accept()
@@ -63,7 +63,7 @@ class Server:
 		self.status = 1
 		self.loggerStatus = 1
 		self.requestTimeout = float(config['DEFAULT']['RequestTimeout'])
-		self.tcpSocket = tcpSocket(host, port, self.requestTimeout)
+		self.tcpSocket = tcpSocket(host, port, self.requestTimeout, int(config['DEFAULT']['QueueSize']))
 		self.logQueue = queue.Queue(10)
 		self.loggerThread = threading.Thread(target=self.logger)
 		self.loggerThread.start()

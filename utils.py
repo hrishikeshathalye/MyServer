@@ -277,16 +277,19 @@ def compareDate2(ifunmod, lastmod,statuscode):
 	else:
 		return '412'
 
-#Ignore for now
 def makecookie(path,ip,date):
-	value = path + ip[0] + date
+	allowedChar = '123456789abcdef'
+	value = path + ip[0] + date 
+	for i in range(5):
+		value += random.choice(allowedChar)
 	value = hashlib.md5(value.encode()).hexdigest()
 	invalid = ['22','2c','3b','5c']
 	for i in invalid:
 		for j in range(0,len(value),2):
 			if i == value[j:j+2]:
 				vlist = list(value)
-				vlist[j:j+2] = ['3','f']
+				vlist[j:j+2] = [random.choice(allowedChar), random.choice(allowedChar)]
+				j -= 2
 				value = ''.join(vlist)
 	cook = dict()
 	cook['mycookie'] = value

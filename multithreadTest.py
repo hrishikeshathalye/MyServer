@@ -75,19 +75,19 @@ class test_03(unittest.TestCase):
         finally:
             return
 
-# class test_04(unittest.TestCase):
-#     """CONFORMANCE TEST - Testing HEAD Request"""
-#     def runTest(self):
-#         """CONFORMANCE TEST - Testing HEAD Request"""
-#         print("\nMaking a HEAD Request")
-#         try:
-#             r = requests.head(SERVER_URL + "/")
-#             print(f"Status : {r.status_code} {r.reason}")
-#             print("Headers:", r.headers)
-#         except Exception as ex:
-#             print('Something went horribly wrong!', ex)
-#         finally:
-#             return
+class test_04(unittest.TestCase):
+    """CONFORMANCE TEST - Testing HEAD Request"""
+    def runTest(self):
+        """CONFORMANCE TEST - Testing HEAD Request"""
+        print("\nMaking a HEAD Request")
+        try:
+            r = requests.head(SERVER_URL + "/")
+            print(f"Status : {r.status_code} {r.reason}")
+            print("Headers:", r.headers)
+        except Exception as ex:
+            print('Something went horribly wrong!', ex)
+        finally:
+            return
 
 class test_05(unittest.TestCase):
     """CONFORMANCE TEST - Testing PUT Request"""
@@ -166,9 +166,12 @@ class test_08(unittest.TestCase):
         request_threads = []
         try:
             def get_test():
-                r = requests.get(SERVER_URL + "/")
-                #will uncomment below line for verbose command line option
-                # print(f"Status : {r.status_code} {r.reason}")
+                try:
+                    r = requests.get(SERVER_URL + "/")
+                    #will uncomment below line for verbose command line option
+                    # print(f"Status : {r.status_code} {r.reason}")
+                except:
+                    print("Error in making request, maybe server queue is full")
             
             # Create threads for all of the requests and start them
             for i in range(n_clientThreads):
@@ -202,11 +205,14 @@ class test_09(unittest.TestCase):
                     key1='TEST',
                     value1='TEST DATA'
                 )
-                r = requests.post(SERVER_URL + "/test",
-                    data=json.dumps(data),
-                    headers={'content-type': 'application/json'}
-                )
-                # print(f"Status : {r.status_code} {r.reason}")
+                try:
+                    r = requests.post(SERVER_URL + "/test",
+                        data=json.dumps(data),
+                        headers={'content-type': 'application/json'}
+                    )
+                    # print(f"Status : {r.status_code} {r.reason}")
+                except:
+                    print("Error in making request, maybe server queue is full")
             
             # Create threads for all of the requests and start them
             for i in range(n_clientThreads):
@@ -224,34 +230,37 @@ class test_09(unittest.TestCase):
             # Stop all running threads
             return
 
-# class test_10(unittest.TestCase):
-#     """STRESS TEST - HEAD Request"""
-#     def runTest(self):
-#         """STRESS TEST - HEAD Request"""
+class test_10(unittest.TestCase):
+    """STRESS TEST - HEAD Request"""
+    def runTest(self):
+        """STRESS TEST - HEAD Request"""
 
-#         print(f"\nDispatching {n_clientThreads} HEAD Request Threads")
-#         request_threads = []
-#         try:
+        print(f"\nDispatching {n_clientThreads} HEAD Request Threads")
+        request_threads = []
+        try:
 
-#             def head_test():
-#                 r = requests.head(SERVER_URL + "/")
-#                 # print(f"Status : {r.status_code} {r.reason}")
+            def head_test():
+                try:
+                    r = requests.head(SERVER_URL + "/")
+                    # print(f"Status : {r.status_code} {r.reason}")
+                except:
+                    print("Error in making request, maybe server queue is full")         
             
-#             # Create threads for all of the requests and start them
-#             for i in range(n_clientThreads):
-#                 t = threading.Thread(target=head_test)
-#                 request_threads.append(t)
-#                 t.start()
+            # Create threads for all of the requests and start them
+            for i in range(n_clientThreads):
+                t = threading.Thread(target=head_test)
+                request_threads.append(t)
+                t.start()
 
-#             # Wait until all of the threads are complete
-#             for thread in request_threads:
-#                 thread.join()
+            # Wait until all of the threads are complete
+            for thread in request_threads:
+                thread.join()
             
-#         except Exception as ex:
-#             print('Something went horribly wrong!', ex)
-#         finally:
-#             # Stop all running threads
-#             return
+        except Exception as ex:
+            print('Something went horribly wrong!', ex)
+        finally:
+            # Stop all running threads
+            return
 
 class test_11(unittest.TestCase):
     """STRESS TEST - PUT Request"""
@@ -267,12 +276,14 @@ class test_11(unittest.TestCase):
                     key1='TEST',
                     value1='TEST DATA'
                 )
-
-                r = requests.put(SERVER_URL + f"/test/test{fileno}.json",
-                    data=json.dumps(data),
-                    headers={'content-type': 'application/json'}
-                )
-                # print(f"Status : {r.status_code} {r.reason}")
+                try:
+                    r = requests.put(SERVER_URL + f"/test/test{fileno}.json",
+                        data=json.dumps(data),
+                        headers={'content-type': 'application/json'}
+                    )
+                    # print(f"Status : {r.status_code} {r.reason}")
+                except:
+                    print("Error in making request, maybe server queue is full")
             
             # Create threads for all of the requests and start them
             for i in range(n_clientThreads):
@@ -302,8 +313,11 @@ class test_12(unittest.TestCase):
                     key1='TEST',
                     value1='TEST DATA'
                 )
-                r = requests.delete(SERVER_URL + f"/test/test{fileno}.json")
-                # print(f"Status : {r.status_code} {r.reason}")
+                try:
+                    r = requests.delete(SERVER_URL + f"/test/test{fileno}.json")
+                    # print(f"Status : {r.status_code} {r.reason}")
+                except:
+                    print("Error in making request, maybe server queue is full")
 
             # Create threads for all of the requests and start them
             for i in range(n_clientThreads):
@@ -338,39 +352,53 @@ class test_13(unittest.TestCase):
         request_threads = []
         try:
             def get_test():
-                r = requests.get(SERVER_URL + "/")
-                # print(f"Status : {r.status_code} {r.reason}")
+                try:
+                    r = requests.get(SERVER_URL + "/")
+                    # print(f"Status : {r.status_code} {r.reason}")
+                except:
+                    print("Error in making request, maybe server queue is full")
             def head_test():
-                r = requests.head(SERVER_URL + "/")
-                # print(f"Status : {r.status_code} {r.reason}")
+                try:
+                    r = requests.head(SERVER_URL + "/")
+                    # print(f"Status : {r.status_code} {r.reason}")
+                except:
+                    print("Error in making request, maybe server queue is full")
             def post_test():
                 data = dict(
                     key1='TEST',
                     value1='TEST DATA'
                 )
-                r = requests.post(SERVER_URL + "/test",
-                    data=json.dumps(data),
-                    headers={'content-type': 'application/json'}
-                )
-                # print(f"Status : {r.status_code} {r.reason}")
+                try:
+                    r = requests.post(SERVER_URL + "/test",
+                        data=json.dumps(data),
+                        headers={'content-type': 'application/json'}
+                    )
+                    # print(f"Status : {r.status_code} {r.reason}")
+                except:
+                    print("Error in making request, maybe server queue is full")
             def put_test(fileno):
                 data = dict(
                     key1='TEST',
                     value1='TEST DATA'
                 )
-
-                r = requests.put(SERVER_URL + f"/test/test{fileno}.json",
-                    data=json.dumps(data),
-                    headers={'content-type': 'application/json'}
-                )
-                # print(f"Status : {r.status_code} {r.reason}")
+                try:
+                    r = requests.put(SERVER_URL + f"/test/test{fileno}.json",
+                        data=json.dumps(data),
+                        headers={'content-type': 'application/json'}
+                    )
+                    # print(f"Status : {r.status_code} {r.reason}")
+                except:
+                    print("Error in making request, maybe server queue is full")
             def delete_test(fileno):
                 data = dict(
                     key1='TEST',
                     value1='TEST DATA'
                 )
-                r = requests.delete(SERVER_URL + f"/test/test{fileno}.json")
-                # print(f"Status : {r.status_code} {r.reason}")
+                try:
+                    r = requests.delete(SERVER_URL + f"/test/test{fileno}.json")
+                    # print(f"Status : {r.status_code} {r.reason}")
+                except:
+                    print("Error in making request, maybe server queue is full")
 
             # Create threads for all of the requests and start them
             for i in range(getThreads):

@@ -195,13 +195,24 @@ def post(requestDict, *args):
     The meaning of the Content-Location header in PUT or POST requests is
     undefined; servers are free to ignore it in those cases. (ignored)
     """
-    config = configparser.ConfigParser()
-    config.read('conf/myserver.conf')
-    postDataLogPath = os.path.join(config['DEFAULT']['LogDir'], config['DEFAULT']['PostDataLog'])
     if(not utils.compatCheck(requestDict['requestLine']['httpVersion'])):
         return badRequest(requestDict, '505')
     if('host' not in requestDict['requestHeaders']):
         return badRequest(requestDict, '400')
+    requestHeaders = requestDict['requestHeaders']
+    config = configparser.ConfigParser()
+    config.read('conf/myserver.conf')
+    ipaddress = args[1]
+    postDataLogPath = os.path.join(config['DEFAULT']['LogDir'], config['DEFAULT']['PostDataLog'])
+    dm = datetime.fromtimestamp(mktime(time.gmtime(os.path.getmtime(postDataLogPath))))
+    ifmatch = requestHeaders.get('if-match',"*")  
+    ifmatchlist = utils.ifmatchparser(ifmatch)
+    Etag =  '"{}"'.format(hashlib.md5((utils.rfcDate(dm)).encode()).hexdigest())
+    for iftag in ifmatchlist:
+        if iftag == "*" or Etag == iftag:
+            break
+    else:
+        return badRequest(requestDict, '412')
     statusCode = None
     responseBody = ''
     with open('media-types/content-type-rev.json','r') as f:
@@ -211,6 +222,10 @@ def post(requestDict, *args):
     contentType = requestDict['requestHeaders'].get('content-type', '')
     contentExt =  typeToExt.get(contentType, '')
     body = requestDict['requestBody']
+    try:
+        cookie = utils.parsecookie(requestHeaders['cookie'])    
+    except:
+        cookie = utils.makecookie('/',ipaddress,utils.rfcDate(datetime.utcnow()))   
     #decoding according to content-encoding
     if('content-md5' in requestDict['requestHeaders']):
         checksum = hashlib.md5(body).hexdigest()
@@ -279,11 +294,13 @@ def post(requestDict, *args):
     return responseDict
 
 def put(requestDict, *args):
+    requestHeaders = requestDict['requestHeaders']
     if(not utils.compatCheck(requestDict['requestLine']['httpVersion'])):
         return badRequest(requestDict, '505')
     if('host' not in requestDict['requestHeaders']):
         return badRequest(requestDict, '400')
     statusCode = None
+    ipaddress = args[1]
     responseBody = ''
     config = configparser.ConfigParser()
     config.read('conf/myserver.conf')
@@ -295,6 +312,14 @@ def put(requestDict, *args):
     contentType = requestDict['requestHeaders'].get('content-type', '')
     contentExt =  typeToExt.get(contentType, '')
     requestBody = requestDict['requestBody']
+    uri = requestLine['requestUri']
+    uri = uri.lstrip('/')
+    path = urlparse(uri).path
+    path = path.lstrip('/')
+    path = '/' + path
+    # if path == '/':
+    #     path = '/index.html'  
+    path = config['DEFAULT']['DocumentRoot'] + path
     #decoding according to content-encoding
     if('content-md5' in requestDict['requestHeaders']):
         checksum = hashlib.md5(requestBody).hexdigest()
@@ -311,33 +336,43 @@ def put(requestDict, *args):
                 requestBody = zlib.decompress(requestBody)
             if(i == 'br'):
                 requestBody = brotli.decompress(requestBody)
-        uri = requestLine['requestUri']
-        uri = uri.lstrip('/')
-        path = urlparse(uri).path
-        path = path.lstrip('/')
-        path = '/' + path
-        # if path == '/':
-        #     path = '/index.html'  
-        path = config['DEFAULT']['DocumentRoot'] + path
+        
         parentDirectory = os.path.split(path)[0]
         filename = os.path.split(path)[1]
+        try:
+            cookie = utils.parsecookie(requestHeaders['cookie'])    
+        except:
+            cookie = utils.makecookie(path,ipaddress,utils.rfcDate(datetime.utcnow())) 
         #create parent directory if does not exist
         if not os.path.exists(parentDirectory):
             os.makedirs(parentDirectory)
         try:
             if(os.path.exists(path)):
-                statusCode = "200"
-                responseBody = "Resource Modified"
+                dm = datetime.fromtimestamp(mktime(time.gmtime(os.path.getmtime(path))))
+                ifmatch = requestHeaders.get('if-match',"*")  
+                ifmatchlist = utils.ifmatchparser(ifmatch)
+                Etag =  '"{}"'.format(hashlib.md5((utils.rfcDate(dm) + contentEncoding[0]).encode()).hexdigest())
+                for iftag in ifmatchlist:
+                    if iftag == "*" or Etag == iftag:
+                        break
+                    else:
+                        statusCode = '412'
+                if(statusCode!='412'):
+                    statusCode = "200"
+                    responseBody = "Resource Modified"
             else:
                 statusCode = "201"
                 responseBody = "Resource Created"
             with open(path, "wb") as f:
-                f.write(requestBody)
+                if(statusCode!='412'):
+                    f.write(requestBody)
         except:
             statusCode = "500"
     # extension = pathlib.Path(path).suffix
     # subtype = extension[1:]  
     if(statusCode == "400"):
+        responseDict = badRequest(requestDict, statusCode)
+    elif(statusCode == "412"):
         responseDict = badRequest(requestDict, statusCode)
     else:
         responseDict = {
@@ -352,17 +387,22 @@ def put(requestDict, *args):
 
 def head(requestDict, *args):
     if(not utils.compatCheck(requestDict['requestLine']['httpVersion'])):
-        return badRequest(requestDict, '505',0)
+        return badRequest(requestDict, '505')
     if('host' not in requestDict['requestHeaders']):
         return badRequest(requestDict, '400')
     config = configparser.ConfigParser()
     config.read('conf/myserver.conf')
+    ipaddress = args[1]
     requestLine = requestDict['requestLine']
     requestHeaders = requestDict['requestHeaders']
     acceptencoding = requestHeaders.get('accept-encoding',"")
     contentencoding = utils.prioritizeEncoding(acceptencoding)
+    ce = contentencoding
+    statusCode = '200'
+    if contentencoding == 'identity':
+        ce = ""
     if not contentencoding:
-        return badRequest(requestDict, '406',0)
+        return badRequest(requestDict, '406')
     uri = requestLine['requestUri'] 
     uri = uri.lstrip('/')
     path = urlparse(uri).path
@@ -373,31 +413,55 @@ def head(requestDict, *args):
     if path == '/':
         path = '/index.html'  
     path = config['DEFAULT']['DocumentRoot'] + path
-    
     if not os.path.isfile(path):
-        return badRequest(requestDict, '404',0)
-
+        return badRequest(requestDict, '404')
     dm = datetime.fromtimestamp(mktime(time.gmtime(os.path.getmtime(path))))
     ifmod = requestHeaders.get('if-modified-since',utils.rfcDate(datetime.fromtimestamp(0)))         
     ifunmod = requestHeaders.get('if-unmodified-since',utils.rfcDate(datetime.utcnow()))
-    statusCode = utils.compareDate(ifmod,utils.rfcDate(dm),utils.rfcDate(datetime.utcnow()))
-    statusCode = utils.compareDate2(ifunmod, utils.rfcDate(dm),statusCode)     
+    ifmatch = requestHeaders.get('if-match',"*")
+    ifnonematch = requestHeaders.get('if-none-match',"")
+    ifmatchlist = utils.ifmatchparser(ifmatch)
+    ifnmatchlist = utils.ifmatchparser(ifnonematch)
+    Etag =  '"{}"'.format(hashlib.md5((utils.rfcDate(dm) + ce).encode()).hexdigest())
+    for iftag in ifmatchlist:
+        if iftag == "*" or Etag == iftag:
+            break
+    else:
+        statusCode = '412'  
+    for ifntag in ifnmatchlist:
+        if ifntag == "*" or Etag == ifntag:
+            statusCode = '304'
+            break 
+        elif ifntag == "":
+            break    
+    else: 
+        ifmod = utils.rfcDate(datetime.fromtimestamp(0))    
+    if ifmod == utils.rfcDate(datetime.fromtimestamp(0)):
+        flag = 1 
+    else :
+        flag = 0               
+    statusCode = utils.compareDate(ifmod,utils.rfcDate(dm),utils.rfcDate(datetime.utcnow()),statusCode,flag)
+    statusCode = utils.compareDate2(ifunmod, utils.rfcDate(dm),statusCode)           
     with open(path,'rb') as f:
         f_bytes = f.read()
         
     extension = pathlib.Path(path).suffix
     subtype = extension[1:]  
+    try:
+        cookie = utils.parsecookie(requestHeaders['cookie'])    
+    except:
+        cookie = utils.makecookie(path,ipaddress,utils.rfcDate(datetime.utcnow()))    
     responseDict = {
         'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode': statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
         'responseHeaders': {
             'Connection' : 'close',
             'Date' : utils.rfcDate(datetime.utcnow()),
-            'Last-Modified':utils.rfcDate(dm),
-            
-            "Set-Cookie": "yummy_cookie=choco"
+            'Last-Modified':utils.rfcDate(dm)
         }, 
         'responseBody' : ''.encode()
     }
+    for i in cookie.keys():
+        responseDict['responseHeaders'].__setitem__('Set-Cookie',i + '=' + cookie[i])
     if statusCode == '200':
         body = f_bytes
         if(contentencoding == 'gzip' or contentencoding == 'x-gzip'):
@@ -412,9 +476,9 @@ def head(requestDict, *args):
             responseDict['responseHeaders'].__setitem__('Content-Encoding',contentencoding)
         else:
             contentencoding = ""  
-        responseDict['responseHeaders'].__setitem__('Content-Type' , typedict.get(subtype,'application/example'))
         responseDict['responseHeaders'].__setitem__('Content-Length',str(len(body)))
-        responseDict['responseHeaders'].__setitem__('ETag','"{}"'.format(hashlib.md5((responseDict['responseHeaders']['Last-Modified'] + contentencoding).encode()).hexdigest()))
+        responseDict['responseHeaders'].__setitem__('Content-Type' , typedict.get(subtype,'application/example'))
+        responseDict['responseHeaders'].__setitem__('ETag',Etag)
     return responseDict
 
 def delete(requestDict, *args):
@@ -422,6 +486,8 @@ def delete(requestDict, *args):
         return badRequest(requestDict, '505')
     if('host' not in requestDict['requestHeaders']):
         return badRequest(requestDict, '400')
+    requestHeaders = requestDict['requestHeaders']
+    ipaddress = args[1]    
     config = configparser.ConfigParser()
     config.read('conf/myserver.conf')
     requestLine = requestDict['requestLine']
@@ -436,8 +502,21 @@ def delete(requestDict, *args):
     path = path.lstrip('/')
     path = '/' + path
     path = config['DEFAULT']['DocumentRoot'] + path
+    try:
+        cookie = utils.parsecookie(requestHeaders['cookie'])    
+    except:
+        cookie = utils.makecookie(path,ipaddress,utils.rfcDate(datetime.utcnow()))   
     if os.path.exists(path):
         try:
+            dm = datetime.fromtimestamp(mktime(time.gmtime(os.path.getmtime(path))))
+            ifmatch = requestHeaders.get('if-match',"*")  
+            ifmatchlist = utils.ifmatchparser(ifmatch)
+            Etag =  '"{}"'.format(hashlib.md5((utils.rfcDate(dm)).encode()).hexdigest())
+            for iftag in ifmatchlist:
+                if iftag == "*" or Etag == iftag:
+                    break
+            else:
+                return badRequest(requestDict, '412')
             os.remove(path)
         except IsADirectoryError:
             shutil.rmtree(path, ignore_errors=True)
