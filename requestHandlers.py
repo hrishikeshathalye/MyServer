@@ -234,6 +234,8 @@ def post(requestDict, *args):
             },
             'responseBody' : responseBody.encode()
         }
+        for i in cookie.keys():
+            responseDict['responseHeaders'].__setitem__('Set-Cookie',i + '=' + cookie[i])
     return responseDict
 
 def put(requestDict, *args):
@@ -334,6 +336,8 @@ def put(requestDict, *args):
             },
             'responseBody' : responseBody.encode()
         }
+        for i in cookie.keys():
+            responseDict['responseHeaders'].__setitem__('Set-Cookie',i + '=' + cookie[i])
     return responseDict    
 
 def head(requestDict, *args):
@@ -496,6 +500,8 @@ def delete(requestDict, *args):
                 },
                 'responseBody': responseBody.encode()
             }
+            for i in cookie.keys():
+                responseDict['responseHeaders'].__setitem__('Set-Cookie',i + '=' + cookie[i])
     else:
         responseDict = badRequest(requestDict, '404')
 
