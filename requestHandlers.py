@@ -98,7 +98,8 @@ def get(requestDict, *args):
         'responseHeaders': {
             'Connection' : 'close',
             'Date' : utils.rfcDate(datetime.utcnow()),
-            'Last-Modified':utils.rfcDate(dm)
+            'Last-Modified':utils.rfcDate(dm),
+            'Server': utils.getServerInfo()
         }, 
         'responseBody' : ''.encode()
     }
@@ -227,7 +228,9 @@ def post(requestDict, *args):
             'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
             'responseHeaders': {
                 'Connection': 'close',
-                'Date': utils.rfcDate(datetime.utcnow()),            
+                'Date': utils.rfcDate(datetime.utcnow()),  
+                'Server': utils.getServerInfo()  ,
+                'ETag' : Etag        
             },
             'responseBody' : responseBody.encode()
         }
@@ -325,7 +328,9 @@ def put(requestDict, *args):
             'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode': statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
             'responseHeaders': {
                 'Connection': 'close',
-                'Date': utils.rfcDate(datetime.utcnow())
+                'Date': utils.rfcDate(datetime.utcnow()),
+                'Server': utils.getServerInfo(),
+                'ETag': Etag
             },
             'responseBody' : responseBody.encode()
         }
@@ -411,7 +416,8 @@ def head(requestDict, *args):
         'responseHeaders': {
             'Connection' : 'close',
             'Date' : utils.rfcDate(datetime.utcnow()),
-            'Last-Modified':utils.rfcDate(dm)
+            'Last-Modified':utils.rfcDate(dm),
+            'Server': utils.getServerInfo()
         }, 
         'responseBody' : ''.encode()
     }
@@ -484,7 +490,9 @@ def delete(requestDict, *args):
                 'statusLine': {'httpVersion':'HTTP/1.1', 'statusCode':statusCode, 'reasonPhrase':utils.givePhrase(statusCode)},
                 'responseHeaders': {
                     'Connection': 'close',
-                    'Date': utils.rfcDate(datetime.utcnow()),            
+                    'Date': utils.rfcDate(datetime.utcnow()), 
+                    'Server': utils.getServerInfo(),
+                    'ETag': Etag           
                 },
                 'responseBody': responseBody.encode()
             }
