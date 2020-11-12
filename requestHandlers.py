@@ -234,6 +234,7 @@ def post(requestDict, *args):
             },
             'responseBody' : responseBody.encode()
         }
+        responseDict['responseHeaders'].__setitem__('Content-Length',str(len(responseDict['responseBody'])))
         for i in cookie.keys():
             responseDict['responseHeaders'].__setitem__('Set-Cookie',i + '=' + cookie[i])
     return responseDict
@@ -268,6 +269,7 @@ def put(requestDict, *args):
     # if path == '/':
     #     path = '/index.html'  
     path = config['DEFAULT']['DocumentRoot'] + path
+    Etag = None
     #decoding according to content-encoding
     if('content-md5' in requestDict['requestHeaders']):
         checksum = hashlib.md5(requestBody).hexdigest()
@@ -331,11 +333,13 @@ def put(requestDict, *args):
             'responseHeaders': {
                 'Connection': 'close',
                 'Date': utils.rfcDate(datetime.utcnow()),
-                'Server': utils.getServerInfo(),
-                'ETag': Etag
+                'Server': utils.getServerInfo()
             },
             'responseBody' : responseBody.encode()
         }
+        responseDict['responseHeaders'].__setitem__('Content-Length',str(len(responseDict['responseBody'])))
+        if Etag:
+            responseDict['responseHeaders'].__setitem__('ETag',Etag)
         for i in cookie.keys():
             responseDict['responseHeaders'].__setitem__('Set-Cookie',i + '=' + cookie[i])
     return responseDict    
@@ -463,6 +467,7 @@ def delete(requestDict, *args):
     path = path.lstrip('/')
     path = '/' + path
     path = config['DEFAULT']['DocumentRoot'] + path
+    Etag = None
     try:
         cookie = utils.parsecookie(requestHeaders['cookie'])    
     except:
@@ -495,11 +500,13 @@ def delete(requestDict, *args):
                 'responseHeaders': {
                     'Connection': 'close',
                     'Date': utils.rfcDate(datetime.utcnow()), 
-                    'Server': utils.getServerInfo(),
-                    'ETag': Etag           
+                    'Server': utils.getServerInfo()                          
                 },
                 'responseBody': responseBody.encode()
             }
+            responseDict['responseHeaders'].__setitem__('Content-Length',str(len(responseDict['responseBody'])))
+            if Etag:
+                responseDict['responseHeaders'].__setitem__('ETag',Etag)
             for i in cookie.keys():
                 responseDict['responseHeaders'].__setitem__('Set-Cookie',i + '=' + cookie[i])
     else:
@@ -525,13 +532,14 @@ def badRequest(requestDict, statusCode, isnhead = 1):
         'responseHeaders': {
             'Connection': 'close',
             'Date': utils.rfcDate(datetime.utcnow()),
-            'Server': utils.getServerInfo()
+            'Server': utils.getServerInfo(),
+            
         },
-        'responseBody': ''.encode()
+        'responseBody' : ''.encode()
     }
     if f_bytes != b'' and isnhead:
         responseDict.__setitem__('responseBody', f_bytes)
         responseDict['responseHeaders'].__setitem__('Content-Type' , typedict.get(subtype,'application/example'))
-        responseDict['responseHeaders'].__setitem__('Content-Length',str(len(f_bytes)))
+    responseDict['responseHeaders'].__setitem__('Content-Length',str(len(responseDict['responseBody'])))    
     return responseDict
   
