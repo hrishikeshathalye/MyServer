@@ -333,22 +333,23 @@ def put(requestDict, *args):
 
 def head(requestDict, *args):
     if(not utils.compatCheck(requestDict['requestLine']['httpVersion'])):
-        return badRequest(requestDict, '505')
+        return badRequest(requestDict, '505',0)
     if('host' not in requestDict['requestHeaders']):
-        return badRequest(requestDict, '400')
+        return badRequest(requestDict, '400',0)
     config = configparser.ConfigParser()
     config.read('conf/myserver.conf')
     ipaddress = args[1]
     requestLine = requestDict['requestLine']
     requestHeaders = requestDict['requestHeaders']
     acceptencoding = requestHeaders.get('accept-encoding',"")
+    accept = requestHeaders.get('accept','*/*')
     contentencoding = utils.prioritizeEncoding(acceptencoding)
     ce = contentencoding
     statusCode = '200'
     if contentencoding == 'identity':
         ce = ""
     if not contentencoding:
-        return badRequest(requestDict, '406')
+        return badRequest(requestDict, '406',0)
     uri = requestLine['requestUri'] 
     uri = uri.lstrip('/')
     path = urlparse(uri).path
@@ -359,8 +360,16 @@ def head(requestDict, *args):
     if path == '/':
         path = '/index.html'  
     path = config['DEFAULT']['DocumentRoot'] + path
+
     if not os.path.isfile(path):
-        return badRequest(requestDict, '404')
+        return badRequest(requestDict, '404',0)
+    extension = pathlib.Path(path).suffix      
+    subtype = utils.prioritizeMedia(accept,extension,path)
+    if subtype == -1 :
+        return badRequest(requestDict,'406',0)
+    if subtype == "*":
+        subtype = extension[1:]   
+    path = path.rstrip(pathlib.Path(path).suffix) + "." + subtype    
     dm = datetime.fromtimestamp(mktime(time.gmtime(os.path.getmtime(path))))
     ifmod = requestHeaders.get('if-modified-since',utils.rfcDate(datetime.fromtimestamp(0)))         
     ifunmod = requestHeaders.get('if-unmodified-since',utils.rfcDate(datetime.utcnow()))
@@ -392,9 +401,7 @@ def head(requestDict, *args):
         with open(path,'rb') as f:
             f_bytes = f.read()
     except PermissionError:
-        return badRequest(requestDict, '403')
-    extension = pathlib.Path(path).suffix
-    subtype = extension[1:]  
+        return badRequest(requestDict, '403',0)
     try:
         cookie = utils.parsecookie(requestHeaders['cookie'])    
     except:
