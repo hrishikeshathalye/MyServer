@@ -241,11 +241,8 @@ class test_10(unittest.TestCase):
         try:
 
             def head_test():
-                try:
-                    r = requests.head(SERVER_URL + "/")
-                    # print(f"Status : {r.status_code} {r.reason}")
-                except:
-                    print("Error in making request, maybe server queue is full")         
+                r = requests.head(SERVER_URL + "/")
+                # print(f"Status : {r.status_code} {r.reason}")
             
             # Create threads for all of the requests and start them
             for i in range(n_clientThreads):
