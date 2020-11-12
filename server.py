@@ -51,6 +51,9 @@ class Server:
 		config = configparser.ConfigParser()
 		config.read('conf/myserver.conf')
 		self.maxConn = int(config['DEFAULT']['MaxSimultaneousConnections'])
+		self.documentRoot = config['DEFAULT']['DocumentRoot']
+		if not os.path.exists(self.documentRoot):
+			os.makedirs(self.documentRoot)
 		self.logDir = config['DEFAULT']['LogDir']
 		if not os.path.exists(self.logDir):
 			os.makedirs(self.logDir)
@@ -191,6 +194,9 @@ class Server:
 				else:
 					self.logQueue.put(log)
 		except:
+			responseDict = requestHandlers.badRequest('', '500',clientAddress)
+			responseString = utils.responseBuilder(responseDict)
+			self.tcpSocket.send(clientConnection, responseString)
 			self.tcpSocket.close(clientConnection)
 			logging.error(utils.logDate(), exc_info=sys.exc_info())
 	

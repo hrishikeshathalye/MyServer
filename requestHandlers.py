@@ -18,81 +18,6 @@ import shutil
 #expect them to return the response fields as a dictionary
 #call utils.responseBuilder in main
 
-"""
-general-header = 
-    (Not To Be Done)Cache-Control            ; Section 14.9
-    (Done) Connection               ; Section 14.10
-    (Done) Date                     ; Section 14.18
-    (Not To Be Done)Pragma                   ; Section 14.32
-    (Not To Be Done - since chunked not done)Trailer                  ; Section 14.40
-    (Not to be Done) Transfer-Encoding        ; Section 14.41
-    (Not to be Done)Upgrade                  ; Section 14.42
-    (Not to be Done)Via                      ; Section 14.45
-    (Not to be Done)Warning                  ; Section 14.46
-"""
-
-#following requestHeaders to be handled
-"""
-	request-header = 
-    | Accept	               ; Section 14.1
-    | -Accept-Charset		   ; Section 14.2
-    | (Done) Accept-Encoding          ; Section 14.3
-    | Accept-Language          ; Section 14.4
-    | Authorization            ; Section 14.8
-    | -Expect                   ; Section 14.20
-    | -From                     ; Section 14.22
-    | (Done)Host                     ; Section 14.23
-    | (Done)If-Match                 ; Section 14.24
-	| (Done) If-Modified-Since        ; Section 14.25
-    | (Done)If-None-Match            ; Section 14.26
-    | (Not to be done)If-Range                 ; Section 14.27
-    | (Done) If-Unmodified-Since      ; Section 14.28
-    | (Not To be Done)Max-Forwards             ; Section 14.31
-    | (Not To be Done)Proxy-Authorization      ; Section 14.34
-    | (Not To be Done)Range                    ; Section 14.35
-    | (Done, used for logging)Referer                  ; Section 14.36
-    | (Not To be Done)TE                       ; Section 14.39
-    | (Done) User-Agent               ; Section 14.43
-"""
-"""
-    response-header = 
-    (Not To be Done)Accept-Ranges           ; Section 14.5
-    *Age                     ; Section 14.6
-    (Done) ETag                    ; Section 14.19
-    *Location                ; Section 14.30
-    (Not To be Done)Proxy-Authenticate      ; Section 14.33
-    -Retry-After             ; Section 14.37
-    (Done) Server                  ; Section 14.38
-    (Not To be Done)Vary                    ; Section 14.44
-    (Not To be Done)WWW-Authenticate        ; Section 14.47
-"""
-"""
-    entity-header  = 
-    -Allow                    ; Section 14.7
-    (Done)Content-Encoding         ; Section 14.11
-    Content-Language         ; Section 14.12
-    (Done) Content-Length           ; Section 14.13
-    Content-Location         ; Section 14.14
-    (Done for POST, PUT)Content-MD5              ; Section 14.15
-    Content-Range            ; Section 14.16
-    (Done) Content-Type             ; Section 14.17
-    Expires                  ; Section 14.21
-    (Done)Last-Modified            ; Section 14.29
-    extension-header
-"""
-#Following are the supported media types		
-"""
-    application
-    example
-    image
-    text
-    audio
-    video
-    font 
-    model
-"""
-
-
 def get(requestDict, *args):
     if(not utils.compatCheck(requestDict['requestLine']['httpVersion'])):
         return badRequest(requestDict, '505')
@@ -159,10 +84,11 @@ def get(requestDict, *args):
         flag = 0               
     statusCode = utils.compareDate(ifmod,utils.rfcDate(dm),utils.rfcDate(datetime.utcnow()),statusCode,flag)
     statusCode = utils.compareDate2(ifunmod, utils.rfcDate(dm),statusCode)           
-    with open(path,'rb') as f:
-        f_bytes = f.read()
-        
-   
+    try:
+        with open(path,'rb') as f:
+            f_bytes = f.read()
+    except PermissionError:
+        return badRequest(requestDict, '403')
     try:
         cookie = utils.parsecookie(requestHeaders['cookie'])    
     except:
@@ -263,6 +189,8 @@ def post(requestDict, *args):
                     f.write("\n")
                 statusCode = "200"
                 responseBody = "Data Logged"
+            except PermissionError:
+                return badRequest(requestDict, '403')
             except:
                 statusCode = "500"
         if(contentExt=="json"):
@@ -276,6 +204,8 @@ def post(requestDict, *args):
                     f.write("\n")
                 statusCode = "200"
                 responseBody = "Data Logged"
+            except PermissionError:
+                return badRequest(requestDict, '403')
             except:
                 statusCode = "500"
         else:
@@ -286,6 +216,8 @@ def post(requestDict, *args):
                     f.write("\n")
                 statusCode = "200"
                 responseBody = "Data Logged"
+            except PermissionError:
+                return badRequest(requestDict, '403')
             except:
                 statusCode = "500"
     if(statusCode == "400"):
@@ -317,14 +249,17 @@ def put(requestDict, *args):
     requestLine = requestDict['requestLine']
     contentEncoding = requestDict['requestHeaders'].get('content-encoding', '')
     contentEncoding = contentEncoding.split(',')
-    contentType = requestDict['requestHeaders'].get('content-type', '')
-    contentExt =  typeToExt.get(contentType, '')
+    contentType = requestDict['requestHeaders'].get('content-type', '-')
+    contentExt =  typeToExt.get(contentType, '-')
     requestBody = requestDict['requestBody']
     uri = requestLine['requestUri']
     uri = uri.lstrip('/')
     path = urlparse(uri).path
     path = path.lstrip('/')
     path = '/' + path
+    if(contentExt!='-'):
+        tmp = path.rsplit('.', 1)[0]
+        path = tmp+f'.{contentExt}'
     # if path == '/':
     #     path = '/index.html'  
     path = config['DEFAULT']['DocumentRoot'] + path
@@ -374,8 +309,11 @@ def put(requestDict, *args):
             with open(path, "wb") as f:
                 if(statusCode!='412'):
                     f.write(requestBody)
+        except PermissionError:
+            return badRequest(requestDict, '403')
         except:
             statusCode = "500"
+            responseBody = ""
     # extension = pathlib.Path(path).suffix
     # subtype = extension[1:]  
     if(statusCode == "400"):
@@ -450,9 +388,11 @@ def head(requestDict, *args):
         flag = 0               
     statusCode = utils.compareDate(ifmod,utils.rfcDate(dm),utils.rfcDate(datetime.utcnow()),statusCode,flag)
     statusCode = utils.compareDate2(ifunmod, utils.rfcDate(dm),statusCode)           
-    with open(path,'rb') as f:
-        f_bytes = f.read()
-        
+    try:
+        with open(path,'rb') as f:
+            f_bytes = f.read()
+    except PermissionError:
+        return badRequest(requestDict, '403')
     extension = pathlib.Path(path).suffix
     subtype = extension[1:]  
     try:
@@ -499,10 +439,6 @@ def delete(requestDict, *args):
     config = configparser.ConfigParser()
     config.read('conf/myserver.conf')
     requestLine = requestDict['requestLine']
-    # contentEncoding = requestDict['requestHeaders'].get('content-encoding', '')
-    # contentEncoding = contentEncoding.split(',')
-    # contentType = requestDict['requestHeaders'].get('content-type', '')
-    # contentExt =  typeToExt.get(contentType, '')
     requestBody = requestDict['requestBody']
     uri = requestLine['requestUri']
     uri = uri.lstrip('/')
@@ -525,9 +461,15 @@ def delete(requestDict, *args):
                     break
             else:
                 return badRequest(requestDict, '412')
-            os.remove(path)
+            try:
+                os.remove(path)
+            except PermissionError:
+                return badRequest(requestDict, '403')
         except IsADirectoryError:
-            shutil.rmtree(path, ignore_errors=True)
+            try:
+                shutil.rmtree(path, ignore_errors=True)
+            except PermissionError:
+                return badRequest(requestDict, '403')
         finally:
             statusCode = '200'
             responseBody = "Resource Deleted"
@@ -562,7 +504,6 @@ def badRequest(requestDict, statusCode, isnhead = 1):
         'responseHeaders': {
             'Connection': 'close',
             'Date': utils.rfcDate(datetime.utcnow()),
-            
             'Server': utils.getServerInfo()
         },
         'responseBody': ''.encode()

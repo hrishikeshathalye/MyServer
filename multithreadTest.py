@@ -5,6 +5,7 @@ import unittest
 import requests
 import random
 import sys
+import shutil
 
 from server import Server
 
@@ -443,3 +444,7 @@ if __name__ == '__main__':
     #accepting stress testing parameters as command line arguments
     n_clientThreads = int(sys.argv[1])
     unittest.main(verbosity=2, argv=[sys.argv[0]])
+    try:
+        shutil.rmtree("html/test/")
+    except:
+        pass

@@ -18,3 +18,6 @@ Steps to run the test :
 Combination stress tests will spawn number of threads that approximately sum to n.
 Do not start the server beforehand, the testing program will itself start the server before starting testing.
 
+
+Once the server has started localhost:90 can be accessed from the browser to access the sample website hosted on the server.
+
