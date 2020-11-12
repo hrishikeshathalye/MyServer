@@ -11,6 +11,7 @@ Steps to run the project :
 1. Install all required packages using "pip install -r requirements.txt"
 2. Start the server using "python3 server.py port_no" , where port_no can be any valid port number. Not giving a port number will cause the server socket to bind to any available port. To bind to port numbers < 1024. prefixing the command with sudo is required.
 3. To stop or restart the server just type "stop" or "restart" into the terminal window where the server is running and press enter. A thread that contiuously keeps waiting for input takes this input and stops/restarts the server.
+4. Server configuration options are available in the myserver.conf file in the conf directory.
 
 Steps to run the test :
 
