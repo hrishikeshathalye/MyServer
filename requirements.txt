@@ -1,16 +1,7 @@
 brotli
 lzw3
 datetime
-time
-math
-platform
-urllib
+urllib3
 configparser
-os
-hashlib
 pathlib
-json
-gzip
-zlib
-shutil
 requests
