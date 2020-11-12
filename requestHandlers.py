@@ -526,8 +526,7 @@ def badRequest(requestDict, statusCode, isnhead = 1):
             'Connection': 'close',
             'Date': utils.rfcDate(datetime.utcnow()),
             'Server': utils.getServerInfo()
-        },
-        'responseBody': ''.encode()
+        }
     }
     if f_bytes != b'' and isnhead:
         responseDict.__setitem__('responseBody', f_bytes)
