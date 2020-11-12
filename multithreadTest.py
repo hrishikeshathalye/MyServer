@@ -9,9 +9,9 @@ import shutil
 
 from server import Server
 
-SERVER_URL = "http://127.0.0.1:90"
+SERVER_URL = "http://127.0.0.1:9000"
 
-server = Server('', 90)
+server = Server('', 9000)
 server_thread = threading.Thread(target=server.serve)
 server_thread.start()
 n_clientThreads = 1
@@ -436,6 +436,10 @@ class test_13(unittest.TestCase):
 #testing server close
 class test_14(unittest.TestCase):
     def runTest(self):
+        try:
+            shutil.rmtree("html/test/")
+        except:
+            pass
         """Testing server stopping"""
         print("")
         server.stop()
@@ -444,7 +448,3 @@ if __name__ == '__main__':
     #accepting stress testing parameters as command line arguments
     n_clientThreads = int(sys.argv[1])
     unittest.main(verbosity=2, argv=[sys.argv[0]])
-    try:
-        shutil.rmtree("html/test/")
-    except:
-        pass

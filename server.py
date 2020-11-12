@@ -58,7 +58,20 @@ class Server:
 		if not os.path.exists(self.logDir):
 			os.makedirs(self.logDir)
 		self.errLogPath = os.path.join(self.logDir, config['DEFAULT']['ErrorLog'])
+		with open(self.errLogPath, "a"):
+			pass
 		self.accessLogPath = os.path.join(self.logDir, config['DEFAULT']['AccessLog'])
+		with open(self.accessLogPath, "a"):
+			pass
+		self.postDataLogPath = os.path.join(self.logDir, config['DEFAULT']['PostDataLog'])
+		with open(self.postDataLogPath, "a"):
+			pass
+		try:
+			os.chmod(self.accessLogPath,0o666)
+			os.chmod(self.errLogPath,0o666)
+			os.chmod(self.postDataLogPath,0o666)
+		except:
+			pass
 		self.activeConn = 0
 		#A variable which contains all thread objects
 		self.threads = []

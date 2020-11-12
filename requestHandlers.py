@@ -193,7 +193,7 @@ def post(requestDict, *args):
                 return badRequest(requestDict, '403')
             except:
                 statusCode = "500"
-        if(contentExt=="json"):
+        elif(contentExt=="json"):
             body = body.decode()
             body = json.loads(body)
             queryWithDate = {utils.logDate(): body}
