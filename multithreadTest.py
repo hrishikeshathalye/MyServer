@@ -239,11 +239,13 @@ class test_10(unittest.TestCase):
         print(f"\nDispatching {n_clientThreads} HEAD Request Threads")
         request_threads = []
         try:
-
             def head_test():
-                r = requests.head(SERVER_URL + "/")
-                # print(f"Status : {r.status_code} {r.reason}")
-            
+                try:
+                    r = requests.head(SERVER_URL + "/")
+                    # print(f"Status : {r.status_code} {r.reason}")
+                except:
+                    print("Error in making request, maybe server queue is full") 
+
             # Create threads for all of the requests and start them
             for i in range(n_clientThreads):
                 t = threading.Thread(target=head_test)
