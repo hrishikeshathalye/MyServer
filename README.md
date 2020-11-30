@@ -1,7 +1,7 @@
 <h1 align="center">MyServer</h1>
 
 <div align="center">
-  :globe_with_meridians:
+  <h1>:globe_with_meridians:</h1>
 </div>
 <div align="center">
   <strong>A minimal, multithreaded HTTP/1.1 compliant Webserver</strong>
