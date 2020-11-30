@@ -9,9 +9,13 @@
 <br />
 
 <div align="center">
+  
  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  
  [![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
+ 
  ![Version](https://img.shields.io/badge/version-1.0-blue])
+ 
 <div>
   
 <div align="center">
