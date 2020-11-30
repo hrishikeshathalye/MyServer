@@ -32,7 +32,7 @@
 ## 🎯 Features <a name="features"></a>
 :heavy_check_mark: __Supports 5 common HTTP methods__ - GET, POST, PUT, DELETE and HEAD <br>
 :heavy_check_mark: __Multithreaded__ <br>
-:heavy_check_mark: __Explicit configuration options__ <br>
+:heavy_check_mark: __Configuration options__ <br>
 :heavy_check_mark: __Level based logging support__ <br>
 :heavy_check_mark: __Support for cookies__ <br>
 :heavy_check_mark: __Automated basic testing__ <br>
