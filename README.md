@@ -79,10 +79,14 @@ Do not start the server beforehand, the testing program will itself start the se
 __Log Formats:__
 
 1. __Access Log__ :
-<Ip-of-client> - - <date> <request-line> <response-status-code> <size-of-response-body-in-bytes> <referer> <user-agent> <value of set cookie header in response> <value of cookie header in request>
+```
+<IpAddr-of-client> - - <date> <request-line> <response-status-code> <size-of-response-body-in-bytes> <referer> <user-agent> <value of set cookie header in response> <value of cookie header in request>
+````
 
 2. __Post Data Log__ : 
+```
 <datetime> - <post_data_as_bytestring>
+```
 
 ## 🎯 Acknowledgements <a name="acks"></a>
 * [RFC 2616](https://tools.ietf.org/html/rfc2616)
