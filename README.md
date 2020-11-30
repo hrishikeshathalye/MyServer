@@ -1,88 +1,21 @@
-<h1 align="center">Choo</h1>
+<h1 align="center">MyServer</h1>
 
 <div align="center">
-  :steam_locomotive::train::train::train::train::train:
+  :globe_with_meridians:
 </div>
 <div align="center">
-  <strong>Fun functional programming</strong>
+  <strong>An HTTP/1.1 compliant Webserver</strong>
 </div>
-<div align="center">
-  A <code>4kb</code> framework for creating sturdy frontend applications
-</div>
-
 <br />
 
-<div align="center">
-  <!-- Stability -->
-  <a href="https://nodejs.org/api/documentation.html#documentation_stability_index">
-    <img src="https://img.shields.io/badge/stability-experimental-orange.svg?style=flat-square"
-      alt="API stability" />
-  </a>
-  <!-- NPM version -->
-  <a href="https://npmjs.org/package/choo">
-    <img src="https://img.shields.io/npm/v/choo.svg?style=flat-square"
-      alt="NPM version" />
-  </a>
-  <!-- Build Status -->
-  <a href="https://travis-ci.org/choojs/choo">
-    <img src="https://img.shields.io/travis/choojs/choo/master.svg?style=flat-square"
-      alt="Build Status" />
-  </a>
-  <!-- Test Coverage -->
-  <a href="https://codecov.io/github/choojs/choo">
-    <img src="https://img.shields.io/codecov/c/github/choojs/choo/master.svg?style=flat-square"
-      alt="Test Coverage" />
-  </a>
-  <!-- Downloads -->
-  <a href="https://npmjs.org/package/choo">
-    <img src="https://img.shields.io/npm/dt/choo.svg?style=flat-square"
-      alt="Download" />
-  </a>
-  <!-- Standard -->
-  <a href="https://standardjs.com">
-    <img src="https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat-square"
-      alt="Standard" />
-  </a>
-</div>
+ [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+ [![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
+ ![Version](https://img.shields.io/badge/version-1.0-blue])
 
 <div align="center">
-  <h3>
-    <a href="https://choo.io">
-      Website
-    </a>
-    <span> | </span>
-    <a href="https://github.com/choojs/choo-handbook">
-      Handbook
-    </a>
-    <span> | </span>
-    <a href="https://github.com/YerkoPalma/awesome-choo">
-      Ecosystem
-    </a>
-    <span> | </span>
-    <!-- <a href="https://github.com/trainyard/choo-cli"> -->
-    <!--   CLI -->
-    <!-- </a> -->
-    <!-- <span> | </span> -->
-    <a href="https://github.com/choojs/choo/blob/master/.github/CONTRIBUTING.md">
-      Contributing
-    </a>
-    <span> | </span>
-    <a href="https://www.reddit.com/r/choojs/">
-      Reddit
-    </a>
-    <span> | </span>
-    <a href="https://webchat.freenode.net/?channels=choo">
-      Chat
-    </a>
-  </h3>
-</div>
-
-<div align="center">
-  <sub>The little framework that could. Built with ❤︎ by
-  <a href="https://twitter.com/yoshuawuyts">Yoshua Wuyts</a> and
-  <a href="https://github.com/choojs/choo/graphs/contributors">
-    contributors
-  </a>
+  <sub>Built by
+  <a href="https://github.com/hrishikeshathalye">Hrishikesh Athalye</a> and
+  <a href="https://github.com/shaunak27">Shaunak Halbe</a>  
 </div>
 
 ## Table of Contents
