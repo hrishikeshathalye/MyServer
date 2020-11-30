@@ -21,7 +21,7 @@
   <a href="https://github.com/shaunak27">Shaunak Halbe</a>  
 </div>
 
-## Table of Contents
+## :dart: Table of Contents
 - [Features](#features)
 - [Usage](#usage)
 - [Config](#config)
@@ -29,15 +29,15 @@
 - [Logs](#logs)
 - [Acknowledgements](#config)
 
-## Features
-1. __Supports 5 common HTTP methods__ - GET, POST, PUT, DELETE and HEAD
-2. __Multithreaded__
-3. __Explicit configuration options__
-4. __Level based logging support__
-5. __Support for cookies__
-6. __Automated basic testing__
+## :dart: Features
+:heavy_check_mark: __Supports 5 common HTTP methods__ - GET, POST, PUT, DELETE and HEAD
+:heavy_check_mark: __Multithreaded__
+:heavy_check_mark: __Explicit configuration options__
+:heavy_check_mark: __Level based logging support__
+:heavy_check_mark: __Support for cookies__
+:heavy_check_mark: __Automated basic testing__
 
-## Usage
+## :dart: Usage
 1. Install all required packages using "pip3 install -r requirements.txt"
 2. Start the server using "python3 server.py port_no" , where port_no can be any valid port number. Not giving a port number will cause the server socket to bind to any available port. To bind to port numbers < 1024 prefixing the command with sudo is required.
 3. To stop or restart the server just type "stop" or "restart" into the terminal window where the server is running and press enter. A thread that continuously keeps waiting for input takes this input and stops/restarts the server.
@@ -45,7 +45,7 @@
 5. Access Log, Error Log and Post Data Logs are located in the log directory. If not already present the server will create them.
 (Being a general purpose web server, default behaviout for POST is to log POST data to PostDataLog.log)
 
-## Config
+## :dart: Config
 Locate the file myserver.conf in the conf directory. The meanings of the various configuration options are as follows:
 
 1. __DocumentRoot__ : The folder where get requests are served from and where PUT requests store data. The value against this filed will indicate the location of the document root relative to the working directory of the project.
@@ -70,9 +70,21 @@ Locate the file myserver.conf in the conf directory. The meanings of the various
 
 11. __Log Level__ : Only errors of severity equal to and above this level will be logged into error.log. Can be one of - CRITICAL, ERROR, WARNING, INFO, DEBUG, NOTSET (NOTSET by default)
 
-## Testing
-## Logs
-## Acknowledgements
+## :dart: Testing
+Run "python3 multithreadTest.py n" using the terminal where n specifies the number of stress test threads. Individual stress tests will spawn n threads to test each method.
+Combination stress tests will spawn number of threads that approximately sum to n.
+Do not start the server beforehand, the testing program will itself start the server before starting testing.
+
+## :dart: Logs
+__Log Formats:__
+
+1. __Access Log__ :
+<Ip-of-client> - - <date> <request-line> <response-status-code> <size-of-response-body-in-bytes> <referer> <user-agent> <value of set cookie header in response> <value of cookie header in request>
+
+2. __Post Data Log__ : 
+<datetime> - <post_data_as_bytestring>
+
+## :dart: Acknowledgements
 * [RFC 2616](https://tools.ietf.org/html/rfc2616)
 * [RFC 6265](https://tools.ietf.org/html/rfc6265)
 * [MDN HTTP Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP)
