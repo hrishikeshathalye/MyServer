@@ -45,6 +45,8 @@
 5. Access Log, Error Log and Post Data Logs are located in the log directory. If not already present the server will create them.
 (Being a general purpose web server, default behaviout for POST is to log POST data to PostDataLog.log)
 
+__Once the server has started localhost:port_no can be accessed from the browser to access the sample default website hosted on the server.__
+
 ## 🎯 Config <a name="config"></a>
 Locate the file myserver.conf in the conf directory. The meanings of the various configuration options are as follows:
 
