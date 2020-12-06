@@ -288,8 +288,8 @@ if __name__ == "__main__":
 			serverThread.join()	
 			print("Restarting Server")
 			#start new server thread
-			serverThread = threading.Thread(target=server.serve)
-			serverThread.start()
+			newServerThread = threading.Thread(target=server.serve)
+			newServerThread.start()
 		else:
 			logging.info(f"{utils.logDate()}:Invalid option entered")
 			print("Invalid Option")

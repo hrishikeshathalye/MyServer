@@ -215,7 +215,10 @@ def prioritizeMedia(acceptVal,extension,path):
 		subtype = broadtype.split("/")[1]
 		if len(pair) == 1:
 			pair.append("q=1.0")
-		q = float(pair[1].split("=")[1].strip())
+		try:
+			q = float(pair[1].split("=")[1].strip())
+		except ValueError:
+			q = float(pair[2].split("=")[1].strip())
 		tag = pair[1].split("=")[0].strip()
 		if broadtype == "*/*" :
 			q -= 0.000001

@@ -56,7 +56,8 @@ def get(requestDict, *args):
         return badRequest(requestDict,'406',0)
     if subtype == "*":
         subtype = extension[1:]   
-    path = path.rstrip(pathlib.Path(path).suffix) + "." + subtype    
+    # path = path.rstrip(pathlib.Path(path).suffix) + "." + subtype    
+    path = path.strip().split(pathlib.Path(path).suffix, 1)[0] + "." + subtype    
     dm = datetime.fromtimestamp(mktime(time.gmtime(os.path.getmtime(path))))
     ifmod = requestHeaders.get('if-modified-since',utils.rfcDate(datetime.fromtimestamp(0)))         
     ifunmod = requestHeaders.get('if-unmodified-since',utils.rfcDate(datetime.utcnow()))
